@@ -2,4 +2,4 @@
 
 - Bech32m encoding
 - Test vectors are in the file `testvectors.txt` in Pythonic format.
-- Remember to sign your commits.
+- Remember to sign your commits. Prefer GPG
