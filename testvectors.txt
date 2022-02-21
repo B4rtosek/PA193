@@ -1,3 +1,4 @@
+# Soon to be converted into JSON
 VALID_BECH32M = [
     "A1LQFN3A",
     "a1lqfn3a",
