@@ -14,6 +14,14 @@ fn valideh( teststr: &str ) -> &str {
 
 //  ========== TESTS START HERE ==========
 
+/*
+------ !!! Refer to the section on Integration testing in the Testing chapter of the Rust book.
+By a simple file restructuring it allows for tests to be in a separate folder. This would be imperative in going
+forward in order to avoid conflict in working separately. On that note I highly recommend reading the simple
+chapter on modules/crates/packages in Rust. It'll help us cleanly divide our code into multiple files
+we can work on ~independently.
+*/
+
 #[cfg(test)]
 mod tests {
     use std::fs;
@@ -22,9 +30,12 @@ mod tests {
 
     #[test]
     fn isvalid() {
+        
         /*
         The test to test valid bech32m vectors.
         */
+
+
         let fileasstr = fs::read_to_string(".\\validbech32m.json").expect(" Error parsing test file as string");
         // The current directory for testing would be the root directory (which contains the src folder)
         // Thus the file has been copied there as well.
