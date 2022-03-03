@@ -9,7 +9,65 @@ pub fn valideh( teststr: &str ) -> &str {
     - The entire logic of validating bech32m goes here.
     */
 
+    // Separator check.
+    if teststr.contains("1") {
 
+        // Length check.
+        let teststrlen = teststr.len();
+        if teststrlen <= 90 && teststrlen > 0 {
+
+        let teststrparts: Vec<&str> = teststr.split("1").collect();
+        let hrp = teststrparts[..teststrparts.len()-1].join("");
+        let datapart = String::from(*teststrparts.last().unwrap());
+
+        if hrp.len() == 0 {
+
+            let hrpiter = hrp.chars();
+            let mut casecheckflag: u8 = 0;      //0 = not set. 1 = uppercase chars. 2 = lowercase chars.
+            for i in hrpiter{
+
+                // Valid character range check
+                if i >= '\u{0021}' && i <= '\u{007E}' {     // ASCII 33 - 126 translation into UTF-8
+                    
+                    //Mix case check
+                    if i.is_lowercase(){
+                        if casecheckflag == 1 {
+                            return "INVALID: MIX CASE HRP";
+                        }
+                        casecheckflag = 2;
+                    } else if i.is_uppercase(){
+                        if casecheckflag == 2 {
+                            return "INVALID: MIX CASE HRP";
+                        }
+                        casecheckflag = 1;
+                    }
+
+                    /*
+                    I believe the HRP checking ends here. Hereafter we need to verify the data(checksum) section.
+                    */
+
+
+                } else {
+                    return "INVALID: HRP INVALID CHARACTER";
+                }
+            }
+
+        } else {
+            return "INVALID: HRP EMPTY"
+        }
+
+
+
+        } else {
+            return "INVALID: LENGTH OUT OF RANGE"
+        }
+    } else {
+        return "INVALID: SEPARTOR NOT FOUND"
+    }
+    
+
+
+    // Dummy test for testing tests. Remove before submission.
     if teststr.eq("A1LQFN3A") { // The very first string in the list.
         "VALID"
     } else { "INVALID" }
