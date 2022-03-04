@@ -69,8 +69,32 @@ pub fn valideh( teststr: &str ) -> &str {
 
                     /*
                     I believe the HRP checking ends here. Hereafter we need to verify the data(checksum) section.
+
+                    The data part, which is at least 6 characters long and only consists of alphanumeric characters excluding "1", "b", "i", and "o"[4].
                     */
-                    return "VALID";
+
+                    if datapart.len() < 6 {
+                        response = "INVALID: DATAPART LENGTH TOO SMALL";
+                        println!("{}",response);
+                        return response;
+                    } else {
+                        let datachars = datapart.chars();
+                        for i in datachars {
+                            if i.is_ascii_alphanumeric() && i != '1' && i != 'b' && i != 'i' && i != 'o' {
+                                
+                                /*
+                                Data character validity testing ends here. The tests to compute and test the checksums should follow.
+                                */
+                                
+                                return "VALID";
+                            } else {
+                                response = "INVALID: INVALID CHARACTERS IN DATA";
+                                println!("{}",response);
+                                return response;                 
+                            }
+                        }
+                    }
+                    
 
 
                 } else {
