@@ -9,35 +9,60 @@ pub fn valideh( teststr: &str ) -> &str {
     - The entire logic of validating bech32m goes here.
     */
 
+    let mut response;
+
     // Separator check.
+    // THis test should actually follow the length check. It gets tested implicitly when bifurcating the code into data and hrp.
     if teststr.contains("1") {
 
         // Length check.
         let teststrlen = teststr.len();
         if teststrlen <= 90 && teststrlen > 0 {
 
-        let teststrparts: Vec<&str> = teststr.split("1").collect();
-        let hrp = teststrparts[..teststrparts.len()-1].join("");
-        let datapart = String::from(*teststrparts.last().unwrap());
+        // let teststrparts: Vec<&str> = teststr.split("1").collect();
+        // let hrp = teststrparts[..teststrparts.len()-1].join("");
+        // let datapart = String::from(*teststrparts.last().unwrap());
+        
+        let hrp: &str;
+        let datapart: &str;
+        
+        let mut separator: usize = 0;
+        let teststriter = teststr.chars().enumerate();
+        for i in teststriter {
+            let (ind, val) = i;
+            if val == '1' {
+                separator = ind;
+            }
+        }
+        hrp = &teststr[..separator+1];
+        datapart = &teststr[separator+1..];
 
-        if hrp.len() == 0 {
+        // dbg!(&teststriter);
+        dbg!(&hrp);
+        dbg!(&datapart);
+
+        if hrp.len() > 0 {
 
             let hrpiter = hrp.chars();
             let mut casecheckflag: u8 = 0;      //0 = not set. 1 = uppercase chars. 2 = lowercase chars.
             for i in hrpiter{
-
+                // dbg!(&i);
                 // Valid character range check
                 if i >= '\u{0021}' && i <= '\u{007E}' {     // ASCII 33 - 126 translation into UTF-8
-                    
+                    // println!("valid char range test pass")
                     //Mix case check
                     if i.is_lowercase(){
                         if casecheckflag == 1 {
-                            return "INVALID: MIX CASE HRP";
+                            response = "INVALID: MIX CASE HRP";
+                            println!("{}",response);
+                            return response;
                         }
                         casecheckflag = 2;
                     } else if i.is_uppercase(){
                         if casecheckflag == 2 {
-                            return "INVALID: MIX CASE HRP";
+                            response = "INVALID: MIX CASE HRP";
+                            println!("{}",response);
+                            return response;
                         }
                         casecheckflag = 1;
                     }
@@ -45,24 +70,33 @@ pub fn valideh( teststr: &str ) -> &str {
                     /*
                     I believe the HRP checking ends here. Hereafter we need to verify the data(checksum) section.
                     */
+                    return "VALID";
 
 
                 } else {
-                    return "INVALID: HRP INVALID CHARACTER";
+                    response = "INVALID: HRP INVALID CHARACTER";
+                    println!("{}",response);
+                    return response;
                 }
             }
 
         } else {
-            return "INVALID: HRP EMPTY"
+            response = "INVALID: HRP EMPTY";
+            println!("{}",response);
+            return response;
         }
 
 
 
         } else {
-            return "INVALID: LENGTH OUT OF RANGE"
+            response = "INVALID: LENGTH OUT OF RANGE";
+            println!("{}",response);
+            return response;
         }
     } else {
-        return "INVALID: SEPARTOR NOT FOUND"
+        response = "INVALID: SEPARATOR NOT FOUND";
+        println!("{}",response);
+        return response;
     }
     
 
