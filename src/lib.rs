@@ -1,6 +1,8 @@
 use std::fs;
 use serde_json::Value;      // Needs to go away. std library only.
 
+// Jan = Honza
+
 pub fn valideh( teststr: &str ) -> &str {
     /*
     ===THIS IS PART OF THE MAIN CODE. THIS FUNCTION WILL BE USED INSIDE MAIN (main.rs) FILE
