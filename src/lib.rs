@@ -39,7 +39,6 @@ pub fn valideh( teststr: &str ) -> &str {
         hrp = &teststr[..separator+1];
         datapart = &teststr[separator+1..];
 
-        // dbg!(&teststriter);
         dbg!(&hrp);
         dbg!(&datapart);
 
@@ -159,7 +158,7 @@ mod tests {
         // The current directory for testing would be the root directory (which contains the src folder)
         // Thus the file has been copied there as well.
 
-        let jsonval: Value = serde_json::from_str(&fileasstr[..]).expect("JSON parsing error");     // &xyz[..] convert String xyx to &str which is the required type.
+        let jsonval: Value = serde_json::from_str(&fileasstr[..]).expect("JSON parsing error");     // &xyz[..] convert String xyx to &str which is the required type &str.
 
         let mut iter = 0;
 
