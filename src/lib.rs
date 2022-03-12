@@ -1,6 +1,3 @@
-use std::fs;
-use serde_json::Value;      // Needs to go away. std library only.
-
 // Jan = Honza
 const BECH32M_CONST : usize = 0x2bc830a3;
 const DATA_LUT : [&'static str; 4] = ["qpzry9x8","gf2tvdw0","s3jn54kh","ce6mua7l"];
@@ -20,14 +17,14 @@ pub fn data_to_int(data: &str) -> Vec<u8> {
 }
 
 pub fn polymod(values: &Vec<u8>) -> usize {
-    let GEN: Vec<usize> = vec![0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
+    let gen: Vec<usize> = vec![0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
     let mut chk = 1 as usize;
 
     for i in values {
         let b = chk >> 25;
         chk = ((chk & 0x1ffffff) << 5) ^ (*i as usize);
         for j in 0 .. 5 {
-            chk ^= if ((b >> j) & 1) != 0 { GEN[j] } else { 0 as usize };
+            chk ^= if ((b >> j) & 1) != 0 { gen[j] } else { 0 as usize };
         }
     }
 
