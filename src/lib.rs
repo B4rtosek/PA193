@@ -1,8 +1,7 @@
 use std::fs;
-use serde_json::Value;      // Needs to go away. std library only.
+use serde_json::Value;      // Can stay. Will have to discuss. Only used in testing not the main functionallity
 
-// Jan = Honza2
-// "an83characterlonghumanreadablepartthatcontainsthetheexcludedcharactersbioandnumber11sg7hg6"
+
 const BECH32M_CONST : usize = 0x2bc830a3;
 const DATA_LUT : [&'static str; 4] = ["qpzry9x8","gf2tvdw0","s3jn54kh","ce6mua7l"];
 
@@ -35,8 +34,6 @@ pub fn polymod(values: &Vec<u8>) -> usize {
     chk
 }
 
-//test comment
-
 pub fn verify_checksum(hrp: &str, data: &str) -> bool {
     
     println!("💀 Received {} as hrp and {} as data", hrp, data);
@@ -67,7 +64,8 @@ pub fn create_checksum( hrp: &str, data: &str) -> Vec<usize> {
 
 pub fn hrp_expand( hrp: &str) -> Vec<u8> {
     let hrpiter = hrp.chars();
-    let hrpiter2 = hrpiter.clone();
+    let hrpiter2 = hrpiter.clone();     // A better way would be to borrow the iterator into the loop but I am not in the mood to do it rn.
+    // The clone is required as the iterator is consumed upon use. More specifically, it moves into the for loop when being called as it is.
     let mut hrpx: Vec<u8> = Vec::new();
     for c in hrpiter {
         hrpx.push((c as u8) >> 5);
