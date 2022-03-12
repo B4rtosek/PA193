@@ -19,6 +19,19 @@ pub fn data_to_int(data: &str) -> Vec<u8> {
     values
 }
 
+pub fn hrp_expand( hrp: &str) -> Vec<u8> {
+    let hrpiter = hrp.chars();
+    let mut hrpx: Vec<u8> = Vec::new();
+    for c in hrpiter {
+        // let mut cc = String::new();
+        // dbg!(&c);
+        hrpx.push((c as u8) >> 5);
+        hrpx.push(0 as u8);
+        hrpx.push((c as u8) & 31)
+    }
+    hrpx
+}
+
 pub fn valideh( teststr: &str ) -> &str {
     /*
     ===THIS IS PART OF THE MAIN CODE. THIS FUNCTION WILL BE USED INSIDE MAIN (main.rs) FILE
@@ -44,6 +57,10 @@ pub fn valideh( teststr: &str ) -> &str {
         let hrp: &str;
         let datapart: &str;
         
+        /*
+        Better logic exists using &str::rfind()
+        Maybe even rsplit_once()
+        */
         let mut separator: usize = 0;
         let teststriter = teststr.chars().enumerate();
         for i in teststriter {
@@ -52,6 +69,8 @@ pub fn valideh( teststr: &str ) -> &str {
                 separator = ind;
             }
         }
+
+
         hrp = &teststr[..separator+1];
         datapart = &teststr[separator+1..];
 
