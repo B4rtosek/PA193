@@ -2,21 +2,58 @@ use std::fs;
 use serde_json::Value;      // Needs to go away. std library only.
 
 // Jan = Honza
-const BECH32M_CONST : u32 = 0x2bc830a3;
+const BECH32M_CONST : usize = 0x2bc830a3;
 const DATA_LUT : [&'static str; 4] = ["qpzry9x8","gf2tvdw0","s3jn54kh","ce6mua7l"];
 
 pub fn data_to_int(data: &str) -> Vec<u8> {
     let dataiter = data.chars();
-    let mut values: Vec<u8> = Vec::new();
+    let mut dataint: Vec<u8> = Vec::new();
     for i in dataiter {
         for j in 0 .. 4 {
             if let Some(v) = DATA_LUT[j].find(i) {
                 let val = (8*j + v) as u8;
-                values.push(val);
+                dataint.push(val);
             };
         }
     }
-    values
+    dataint
+}
+
+pub fn polymod(values: Vec<u8>) -> usize {
+    let GEN: Vec<usize> = vec![0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
+    let mut chk = 1 as usize;
+
+    for i in values {
+        let b = chk >> 25;
+        chk = ((chk & 0x1ffffff) << 5) ^ (i as usize);
+        for j in 0 .. 5 {
+            chk ^= if ((b >> j) & 1) == 1 { GEN[j] } else { 0 as usize };
+        }
+    }
+
+    chk
+}
+
+pub fn verify_checksum(hrp: &str, data: &str) -> bool {
+    let mut hrp = hrp_expand( hrp );
+    let mut data = data_to_int(data);
+    hrp.append(&mut data);
+    let res = polymod( hrp );
+    res == BECH32M_CONST
+}
+
+pub fn create_checksum( hrp: &str, data: &str) -> Vec<usize> {
+    let mut values: Vec<u8> = hrp_expand(hrp);
+    let mut data = data_to_int(data);
+    values.append(&mut data);
+    let mut zerosvec: Vec<u8> = vec![0,0,0,0,0,0];
+    values.append(&mut zerosvec);
+    let polymod_res = polymod(values) ^ BECH32M_CONST;
+    let mut checksum_vec: Vec<usize> = Vec::with_capacity(6);
+    for i in (0..6).rev() {
+        checksum_vec.push((polymod_res >> 5 * i) & 31)
+    }
+    checksum_vec
 }
 
 pub fn hrp_expand( hrp: &str) -> Vec<u8> {
@@ -40,7 +77,7 @@ pub fn valideh( teststr: &str ) -> &str {
     - The entire logic of validating bech32m goes here.
     */
 
-    let mut response;
+    let response;
 
     // Separator check.
     // THis test should actually follow the length check. It gets tested implicitly when bifurcating the code into data and hrp.
