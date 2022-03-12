@@ -2,6 +2,7 @@ use std::fs;
 use serde_json::Value;      // Needs to go away. std library only.
 
 // Jan = Honza2
+// "an83characterlonghumanreadablepartthatcontainsthetheexcludedcharactersbioandnumber11sg7hg6"
 const BECH32M_CONST : usize = 0x2bc830a3;
 const DATA_LUT : [&'static str; 4] = ["qpzry9x8","gf2tvdw0","s3jn54kh","ce6mua7l"];
 
@@ -66,13 +67,14 @@ pub fn create_checksum( hrp: &str, data: &str) -> Vec<usize> {
 
 pub fn hrp_expand( hrp: &str) -> Vec<u8> {
     let hrpiter = hrp.chars();
+    let hrpiter2 = hrpiter.clone();
     let mut hrpx: Vec<u8> = Vec::new();
     for c in hrpiter {
-        // let mut cc = String::new();
-        // dbg!(&c);
         hrpx.push((c as u8) >> 5);
-        hrpx.push(0 as u8);
-        hrpx.push((c as u8) & 31)
+    }
+    hrpx.push(0 as u8);
+    for c in hrpiter2 {
+        hrpx.push((c as u8) & 31);
     }
     hrpx
 }
@@ -216,9 +218,10 @@ pub fn valideh( teststr: &str ) -> &str {
 
 
     // Dummy test for testing tests. Remove before submission.
-    if teststr.eq("A1LQFN3A") { // The very first string in the list.
-        "VALID"
-    } else { "INVALID" }
+    // if teststr.eq("A1LQFN3A") { // The very first string in the list.
+    //     "VALID"
+    // } else { "INVALID" }
+    ""
 }
 
 //  ========== TESTS START HERE ==========
@@ -243,7 +246,7 @@ mod tests {
         The test to test valid bech32m vectors.
         */
 
-        let fileasstr = fs::read_to_string(".\\validbech32m.json").expect(" Error parsing test file as string");
+        let fileasstr = fs::read_to_string("./validbech32m.json").expect(" Error parsing test file as string");
         // The current directory for testing would be the root directory (which contains the src folder)
         // Thus the file has been copied there as well.
 
