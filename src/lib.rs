@@ -19,15 +19,15 @@ pub fn data_to_int(data: &str) -> Vec<u8> {
     dataint
 }
 
-pub fn polymod(values: Vec<u8>) -> usize {
+pub fn polymod(values: &Vec<u8>) -> usize {
     let GEN: Vec<usize> = vec![0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
     let mut chk = 1 as usize;
 
     for i in values {
         let b = chk >> 25;
-        chk = ((chk & 0x1ffffff) << 5) ^ (i as usize);
+        chk = ((chk & 0x1ffffff) << 5) ^ (*i as usize);
         for j in 0 .. 5 {
-            chk ^= if ((b >> j) & 1) == 1 { GEN[j] } else { 0 as usize };
+            chk ^= if ((b >> j) & 1) != 0 { GEN[j] } else { 0 as usize };
         }
     }
 
@@ -35,10 +35,16 @@ pub fn polymod(values: Vec<u8>) -> usize {
 }
 
 pub fn verify_checksum(hrp: &str, data: &str) -> bool {
+    
+    println!("💀 Received {} as hrp and {} as data", hrp, data);
     let mut hrp = hrp_expand( hrp );
+    println!("💀 HRP expanded to: {:?}", &hrp);
     let mut data = data_to_int(data);
+    println!("💀 Data to int looks like: {:?}", &data);
     hrp.append(&mut data);
-    let res = polymod( hrp );
+    println!("💀 Sending {:?} to polymod", &hrp);
+    let res = polymod( &hrp );
+    println!("💀 Result of the polymod is => {}", &res);
     res == BECH32M_CONST
 }
 
@@ -48,7 +54,7 @@ pub fn create_checksum( hrp: &str, data: &str) -> Vec<usize> {
     values.append(&mut data);
     let mut zerosvec: Vec<u8> = vec![0,0,0,0,0,0];
     values.append(&mut zerosvec);
-    let polymod_res = polymod(values) ^ BECH32M_CONST;
+    let polymod_res = polymod(&values) ^ BECH32M_CONST;
     let mut checksum_vec: Vec<usize> = Vec::with_capacity(6);
     for i in (0..6).rev() {
         checksum_vec.push((polymod_res >> 5 * i) & 31)
@@ -108,11 +114,12 @@ pub fn valideh( teststr: &str ) -> &str {
         }
 
 
-        hrp = &teststr[..separator+1];
+        hrp = &teststr[..separator];
         datapart = &teststr[separator+1..];
 
-        dbg!(&hrp);
-        dbg!(&datapart);
+        // dbg!(&hrp);
+        // dbg!(&datapart);
+        println!("🔛 {} is split into {} as hrp and {} as data", teststr, hrp, datapart);
 
         if hrp.len() > 0 {
 
@@ -145,7 +152,10 @@ pub fn valideh( teststr: &str ) -> &str {
 
                     The data part, which is at least 6 characters long and only consists of alphanumeric characters excluding "1", "b", "i", and "o"[4].
                     */
-
+                    let hrp = hrp.to_ascii_lowercase();
+                    let hrp = hrp.as_str();
+                    let datapart = datapart.to_ascii_lowercase();
+                    let datapart = datapart.as_str();
                     if datapart.len() < 6 {
                         response = "INVALID: DATAPART LENGTH TOO SMALL";
                         println!("{}",response);
@@ -158,10 +168,13 @@ pub fn valideh( teststr: &str ) -> &str {
                                 /*
                                 Data character validity testing ends here. The tests to compute and test the checksums should follow.
                                 */
-                                
+                                if verify_checksum(hrp, datapart) { 
+                                    response = "VALID";
+                                } else {
+                                    response = "INVALID: CHECKSUM VALIDATION FAILED";
+                                }
 
-
-                                return "VALID";
+                                return response;
                             } else {
                                 response = "INVALID: INVALID CHARACTERS IN DATA";
                                 println!("{}",response);
@@ -241,6 +254,7 @@ mod tests {
             let theresult = valideh(&theword);
             if theresult.ne("VALID") {
                 println!("\n ==== {} : DID NOT RECEIVE VALIDATION ====\n\n",theword);
+                println!("{}",theresult);
                 panic!();
             }
             iter += 1;
