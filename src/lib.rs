@@ -2,6 +2,22 @@ use std::fs;
 use serde_json::Value;      // Needs to go away. std library only.
 
 // Jan = Honza
+const BECH32M_CONST : u32 = 0x2bc830a3;
+const DATA_LUT : [&'static str; 4] = ["qpzry9x8","gf2tvdw0","s3jn54kh","ce6mua7l"];
+
+pub fn data_to_int(data: &str) -> Vec<u8> {
+    let dataiter = data.chars();
+    let mut values: Vec<u8> = Vec::new();
+    for i in dataiter {
+        for j in 0 .. 4 {
+            if let Some(v) = DATA_LUT[j].find(i) {
+                let val = (8*j + v) as u8;
+                values.push(val);
+            };
+        }
+    }
+    values
+}
 
 pub fn valideh( teststr: &str ) -> &str {
     /*
@@ -87,6 +103,8 @@ pub fn valideh( teststr: &str ) -> &str {
                                 Data character validity testing ends here. The tests to compute and test the checksums should follow.
                                 */
                                 
+
+
                                 return "VALID";
                             } else {
                                 response = "INVALID: INVALID CHARACTERS IN DATA";

@@ -1,3 +1,8 @@
+use semproject::data_to_int;
+
+
 fn main() {
-    println!("Hello, pv193!");
+    let text = "suyash";
+    let resp = data_to_int(text);
+    println!("{:?}",resp)
 }
