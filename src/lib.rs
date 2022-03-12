@@ -1,3 +1,6 @@
+use std::fs;
+use serde_json::Value;      // Needs to go away. std library only.
+
 // Jan = Honza
 const BECH32M_CONST : usize = 0x2bc830a3;
 const DATA_LUT : [&'static str; 4] = ["qpzry9x8","gf2tvdw0","s3jn54kh","ce6mua7l"];
