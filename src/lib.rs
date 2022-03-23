@@ -5,13 +5,13 @@ use serde_json::Value;      // Can stay. Will have to discuss. Only used in test
 const BECH32M_CONST : usize = 0x2bc830a3;
 const DATA_LUT : [&'static str; 4] = ["qpzry9x8","gf2tvdw0","s3jn54kh","ce6mua7l"];
 
-pub fn data_to_int(data: &str) -> Vec<u8> {
+pub fn data_to_int(data: &str) -> Vec<usize> {
     let dataiter = data.chars();
-    let mut dataint: Vec<u8> = Vec::new();
+    let mut dataint: Vec<usize> = Vec::new();
     for i in dataiter {
         for j in 0 .. 4 {
             if let Some(v) = DATA_LUT[j].find(i) {
-                let val = (8*j + v) as u8;
+                let val = (8*j + v) as usize;
                 dataint.push(val);
             };
         }
@@ -19,7 +19,7 @@ pub fn data_to_int(data: &str) -> Vec<u8> {
     dataint
 }
 
-pub fn polymod(values: &Vec<u8>) -> usize {
+pub fn polymod(values: &Vec<usize>) -> usize {
     let GEN: Vec<usize> = vec![0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
     let mut chk = 1 as usize;
 
@@ -49,10 +49,10 @@ pub fn verify_checksum(hrp: &str, data: &str) -> bool {
 }
 
 pub fn create_checksum( hrp: &str, data: &str) -> Vec<usize> {
-    let mut values: Vec<u8> = hrp_expand(hrp);
+    let mut values: Vec<usize> = hrp_expand(hrp);
     let mut data = data_to_int(data);
     values.append(&mut data);
-    let mut zerosvec: Vec<u8> = vec![0,0,0,0,0,0];
+    let mut zerosvec: Vec<usize> = vec![0,0,0,0,0,0];
     values.append(&mut zerosvec);
     let polymod_res = polymod(&values) ^ BECH32M_CONST;
     let mut checksum_vec: Vec<usize> = Vec::with_capacity(6);
@@ -62,19 +62,37 @@ pub fn create_checksum( hrp: &str, data: &str) -> Vec<usize> {
     checksum_vec
 }
 
-pub fn hrp_expand( hrp: &str) -> Vec<u8> {
+pub fn hrp_expand( hrp: &str) -> Vec<usize> {
     let hrpiter = hrp.chars();
     let hrpiter2 = hrpiter.clone();     // A better way would be to borrow the iterator into the loop but I am not in the mood to do it rn.
     // The clone is required as the iterator is consumed upon use. More specifically, it moves into the for loop when being called as it is.
-    let mut hrpx: Vec<u8> = Vec::new();
+    let mut hrpx: Vec<usize> = Vec::new();
     for c in hrpiter {
-        hrpx.push((c as u8) >> 5);
+        hrpx.push((c as usize) >> 5);
     }
-    hrpx.push(0 as u8);
+    hrpx.push(0 as usize);
     for c in hrpiter2 {
-        hrpx.push((c as u8) & 31);
+        hrpx.push((c as usize) & 31);
     }
     hrpx
+}
+
+pub fn encode(hrp: &str, data: &str) -> String {
+    let checksum = create_checksum(hrp, data);
+    let data = data_to_int(data);
+    let mut combined: Vec<usize> = Vec::new();
+    let mut dataiter = data.iter();
+    let dataindex = dataiter.next(); // Note the iterator provides &usize return despite arraw being of usize elements.
+    while dataindex != None {
+        combined.push(*dataindex.unwrap());
+    }
+    let mut checksum_iter = checksum.iter();
+    let checksumindex = checksum_iter.next();
+    while checksumindex != None {
+        combined.push(*checksumindex.unwrap());
+    }
+
+    String::from("Bite me")
 }
 
 pub fn valideh( teststr: &str ) -> &str {
@@ -126,7 +144,7 @@ pub fn valideh( teststr: &str ) -> &str {
         if hrp.len() > 0 {
 
             let hrpiter = hrp.chars();
-            let mut casecheckflag: u8 = 0;      //0 = not set. 1 = uppercase chars. 2 = lowercase chars.
+            let mut casecheckflag: usize = 0;      //0 = not set. 1 = uppercase chars. 2 = lowercase chars.
             for i in hrpiter{
                 // dbg!(&i);
                 // Valid character range check
@@ -219,7 +237,7 @@ pub fn valideh( teststr: &str ) -> &str {
     // if teststr.eq("A1LQFN3A") { // The very first string in the list.
     //     "VALID"
     // } else { "INVALID" }
-    ""
+    "YOU SHOULDNT BE HERE"
 }
 
 //  ========== TESTS START HERE ==========
