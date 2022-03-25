@@ -1,5 +1,5 @@
 use std::fs;
-use serde_json::Value;      // Can stay. Will have to discuss. Only used in testing not the main functionallity
+use serde_json::Value;      // Hardcode the test vectors in the code and remove this.
 
 
 const BECH32M_CONST : usize = 0x2bc830a3;
@@ -79,21 +79,35 @@ pub fn hrp_expand( hrp: &str) -> Vec<usize> {
 
 pub fn encode(hrp: &str, data: &str) -> String {
     let checksum = create_checksum(hrp, data);
-    let data = data_to_int(data);
+    let dataint = data_to_int(data);
     let mut combined: Vec<usize> = Vec::new();
-    let mut dataiter = data.iter();
-    let dataindex = dataiter.next(); // Note the iterator provides &usize return despite arraw being of usize elements.
+    let mut dataiter = dataint.iter();
+    let mut dataindex = dataiter.next(); // Note the iterator provides &usize return despite arraw being of usize elements.
     while dataindex != None {
         combined.push(*dataindex.unwrap());
+        dataindex = dataiter.next();
     }
     let mut checksum_iter = checksum.iter();
-    let checksumindex = checksum_iter.next();
+    let mut checksumindex = checksum_iter.next();
     while checksumindex != None {
         combined.push(*checksumindex.unwrap());
+        checksumindex = checksum_iter.next();
     }
 
-    String::from("Bite me")
+    let mut encoded_string = String::new();
+    encoded_string.push_str(hrp);
+    encoded_string.push('1');
+    
+    for i in combined {
+        let string_index = (i/8) as usize;
+        let holder_string = DATA_LUT[string_index];
+        encoded_string.push(holder_string.chars().nth(i - 8*string_index).unwrap());
+    }
+
+    encoded_string
 }
+
+
 
 pub fn valideh( teststr: &str ) -> &str {
     /*
