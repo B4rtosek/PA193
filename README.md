@@ -23,3 +23,5 @@
    - Test user interface.
    - Analyze the various attack vectors.
    - Address the various attack vectors.
+   - Prepare the presentation.
+   - Record the presentation.
