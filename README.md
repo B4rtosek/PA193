@@ -1,4 +1,4 @@
-# Semester project for course PV193, Faculty of Informatics, Masaryk University
+# Semester project for course PA193, Faculty of Informatics, Masaryk University
    
 - Bech32m encoding
 - Test vectors are in the file `testvectors.txt` in Pythonic format.
