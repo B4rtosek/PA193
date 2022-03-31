@@ -9,7 +9,7 @@ pub fn data_to_int(data: &str) -> Vec<usize> {
     let dataiter = data.chars();
     let mut dataint: Vec<usize> = Vec::new();
     for i in dataiter {
-        for j in 0 .. 4 {
+        for j in 0..4 {
             if let Some(v) = DATA_LUT[j].find(i) {
                 let val = (8*j + v) as usize;
                 dataint.push(val);
@@ -26,8 +26,12 @@ pub fn polymod(values: &Vec<usize>) -> usize {
     for i in values {
         let b = chk >> 25;
         chk = ((chk & 0x1ffffff) << 5) ^ (*i as usize);
-        for j in 0 .. 5 {
-            chk ^= if ((b >> j) & 1) != 0 { GEN[j] } else { 0 as usize };
+        for j in 0..5 {
+            chk ^= if ((b >> j) & 1) != 0 {
+                gen[j]
+            } else {
+                0 as usize
+            };
         }
     }
 
@@ -35,15 +39,14 @@ pub fn polymod(values: &Vec<usize>) -> usize {
 }
 
 pub fn verify_checksum(hrp: &str, data: &str) -> bool {
-    
     println!("💀 Received {} as hrp and {} as data", hrp, data);
-    let mut hrp = hrp_expand( hrp );
+    let mut hrp = hrp_expand(hrp);
     println!("💀 HRP expanded to: {:?}", &hrp);
     let mut data = data_to_int(data);
     println!("💀 Data to int looks like: {:?}", &data);
     hrp.append(&mut data);
     println!("💀 Sending {:?} to polymod", &hrp);
-    let res = polymod( &hrp );
+    let res = polymod(&hrp);
     println!("💀 Result of the polymod is => {}", &res);
     res == BECH32M_CONST
 }
@@ -122,40 +125,28 @@ pub fn valideh( teststr: &str ) -> &str {
     // Separator check.
     // THis test should actually follow the length check. It gets tested implicitly when bifurcating the code into data and hrp.
     if teststr.contains("1") {
-
         // Length check.
         let teststrlen = teststr.len();
         if teststrlen <= 90 && teststrlen > 0 {
+            // let teststrparts: Vec<&str> = teststr.split("1").collect();
+            // let hrp = teststrparts[..teststrparts.len()-1].join("");
+            // let datapart = String::from(*teststrparts.last().unwrap());
 
-        // let teststrparts: Vec<&str> = teststr.split("1").collect();
-        // let hrp = teststrparts[..teststrparts.len()-1].join("");
-        // let datapart = String::from(*teststrparts.last().unwrap());
-        
-        let hrp: &str;
-        let datapart: &str;
-        
-        /*
-        Better logic exists using &str::rfind()
-        Maybe even rsplit_once()
-        */
-        let mut separator: usize = 0;
-        let teststriter = teststr.chars().enumerate();
-        for i in teststriter {
-            let (ind, val) = i;
-            if val == '1' {
-                separator = ind;
+            let hrp: &str;
+            let datapart: &str;
+
+            /*
+            Better logic exists using &str::rfind()
+            Maybe even rsplit_once()
+            */
+            let mut separator: usize = 0;
+            let teststriter = teststr.chars().enumerate();
+            for i in teststriter {
+                let (ind, val) = i;
+                if val == '1' {
+                    separator = ind;
+                }
             }
-        }
-
-
-        hrp = &teststr[..separator];
-        datapart = &teststr[separator+1..];
-
-        // dbg!(&hrp);
-        // dbg!(&datapart);
-        println!("🔛 {} is split into {} as hrp and {} as data", teststr, hrp, datapart);
-
-        if hrp.len() > 0 {
 
             let hrpiter = hrp.chars();
             let mut casecheckflag: usize = 0;      //0 = not set. 1 = uppercase chars. 2 = lowercase chars.
@@ -178,74 +169,67 @@ pub fn valideh( teststr: &str ) -> &str {
                             println!("{}",response);
                             return response;
                         }
-                        casecheckflag = 1;
-                    }
 
-                    /*
-                    I believe the HRP checking ends here. Hereafter we need to verify the data(checksum) section.
+                        /*
+                        I believe the HRP checking ends here. Hereafter we need to verify the data(checksum) section.
 
-                    The data part, which is at least 6 characters long and only consists of alphanumeric characters excluding "1", "b", "i", and "o"[4].
-                    */
-                    let hrp = hrp.to_ascii_lowercase();
-                    let hrp = hrp.as_str();
-                    let datapart = datapart.to_ascii_lowercase();
-                    let datapart = datapart.as_str();
-                    if datapart.len() < 6 {
-                        response = "INVALID: DATAPART LENGTH TOO SMALL";
-                        println!("{}",response);
-                        return response;
-                    } else {
-                        let datachars = datapart.chars();
-                        for i in datachars {
-                            if i.is_ascii_alphanumeric() && i != '1' && i != 'b' && i != 'i' && i != 'o' {
-                                
-                                /*
-                                Data character validity testing ends here. The tests to compute and test the checksums should follow.
-                                */
-                                if verify_checksum(hrp, datapart) { 
-                                    response = "VALID";
+                        The data part, which is at least 6 characters long and only consists of alphanumeric characters excluding "1", "b", "i", and "o"[4].
+                        */
+                        let hrp = hrp.to_ascii_lowercase();
+                        let hrp = hrp.as_str();
+                        let datapart = datapart.to_ascii_lowercase();
+                        let datapart = datapart.as_str();
+                        if datapart.len() < 6 {
+                            response = "INVALID: DATAPART LENGTH TOO SMALL";
+                            println!("{}", response);
+                            return response;
+                        } else {
+                            let datachars = datapart.chars();
+                            for i in datachars {
+                                if i.is_ascii_alphanumeric()
+                                    && i != '1'
+                                    && i != 'b'
+                                    && i != 'i'
+                                    && i != 'o'
+                                {
+                                    /*
+                                    Data character validity testing ends here. The tests to compute and test the checksums should follow.
+                                    */
+                                    if verify_checksum(hrp, datapart) {
+                                        response = "VALID";
+                                    } else {
+                                        response = "INVALID: CHECKSUM VALIDATION FAILED";
+                                    }
+
+                                    return response;
                                 } else {
-                                    response = "INVALID: CHECKSUM VALIDATION FAILED";
+                                    response = "INVALID: INVALID CHARACTERS IN DATA";
+                                    println!("{}", response);
+                                    return response;
                                 }
-
-                                return response;
-                            } else {
-                                response = "INVALID: INVALID CHARACTERS IN DATA";
-                                println!("{}",response);
-                                return response;                 
                             }
                         }
+                    } else {
+                        response = "INVALID: HRP INVALID CHARACTER";
+                        println!("{}", response);
+                        return response;
                     }
-                    
-
-
-                } else {
-                    response = "INVALID: HRP INVALID CHARACTER";
-                    println!("{}",response);
-                    return response;
                 }
+            } else {
+                response = "INVALID: HRP EMPTY";
+                println!("{}", response);
+                return response;
             }
-
-        } else {
-            response = "INVALID: HRP EMPTY";
-            println!("{}",response);
-            return response;
-        }
-
-
-
         } else {
             response = "INVALID: LENGTH OUT OF RANGE";
-            println!("{}",response);
+            println!("{}", response);
             return response;
         }
     } else {
         response = "INVALID: SEPARATOR NOT FOUND";
-        println!("{}",response);
+        println!("{}", response);
         return response;
     }
-    
-
 
     // Dummy test for testing tests. Remove before submission.
     // if teststr.eq("A1LQFN3A") { // The very first string in the list.
@@ -266,12 +250,10 @@ we can work on ~independently.
 
 #[cfg(test)]
 mod tests {
-    
     use super::*;
 
     #[test]
     fn isvalid() {
-        
         /*
         The test to test valid bech32m vectors.
         */
@@ -280,7 +262,7 @@ mod tests {
         // The current directory for testing would be the root directory (which contains the src folder)
         // Thus the file has been copied there as well.
 
-        let jsonval: Value = serde_json::from_str(&fileasstr[..]).expect("JSON parsing error");     // &xyz[..] convert String xyx to &str which is the required type &str.
+        let jsonval: Value = serde_json::from_str(&fileasstr[..]).expect("JSON parsing error"); // &xyz[..] convert String xyx to &str which is the required type &str.
 
         let mut iter = 0;
 
@@ -288,14 +270,13 @@ mod tests {
             let theword = jsonval["VALID_BECH32M"][iter].as_str().unwrap();
             let theresult = valideh(&theword);
             if theresult.ne("VALID") {
-                println!("\n ==== {} : DID NOT RECEIVE VALIDATION ====\n\n",theword);
-                println!("{}",theresult);
+                println!("\n ==== {} : DID NOT RECEIVE VALIDATION ====\n\n", theword);
+                println!("{}", theresult);
                 panic!();
             }
             iter += 1;
         }
         // assert_eq!("VALID",valideh(jsonval["VALID_BECH32M"][1].as_str().unwrap()));
-
     }
 
     #[test]
@@ -303,7 +284,7 @@ mod tests {
         /*
         Test the invalid bech32m vectors here.
         */
-        assert_eq!(1,1)
+        assert_eq!(1, 1)
     }
 
     #[test]
