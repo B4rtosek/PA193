@@ -1,17 +1,17 @@
-use serde_json::Value;
-use std::fs; // Needs to go away. std library only.
+use std::fs;
+use serde_json::Value;      // Hardcode the test vectors in the code and remove this.
 
-// Jan = Honza
-const BECH32M_CONST: usize = 0x2bc830a3;
-const DATA_LUT: [&'static str; 4] = ["qpzry9x8", "gf2tvdw0", "s3jn54kh", "ce6mua7l"];
 
-pub fn data_to_int(data: &str) -> Vec<u8> {
+const BECH32M_CONST : usize = 0x2bc830a3;
+const DATA_LUT : [&'static str; 4] = ["qpzry9x8","gf2tvdw0","s3jn54kh","ce6mua7l"];
+
+pub fn data_to_int(data: &str) -> Vec<usize> {
     let dataiter = data.chars();
-    let mut dataint: Vec<u8> = Vec::new();
+    let mut dataint: Vec<usize> = Vec::new();
     for i in dataiter {
         for j in 0..4 {
             if let Some(v) = DATA_LUT[j].find(i) {
-                let val = (8 * j + v) as u8;
+                let val = (8*j + v) as usize;
                 dataint.push(val);
             };
         }
@@ -19,8 +19,8 @@ pub fn data_to_int(data: &str) -> Vec<u8> {
     dataint
 }
 
-pub fn polymod(values: &Vec<u8>) -> usize {
-    let gen: Vec<usize> = vec![0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
+pub fn polymod(values: &Vec<usize>) -> usize {
+    let GEN: Vec<usize> = vec![0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
     let mut chk = 1 as usize;
 
     for i in values {
@@ -51,11 +51,11 @@ pub fn verify_checksum(hrp: &str, data: &str) -> bool {
     res == BECH32M_CONST
 }
 
-pub fn create_checksum(hrp: &str, data: &str) -> Vec<usize> {
-    let mut values: Vec<u8> = hrp_expand(hrp);
+pub fn create_checksum( hrp: &str, data: &str) -> Vec<usize> {
+    let mut values: Vec<usize> = hrp_expand(hrp);
     let mut data = data_to_int(data);
     values.append(&mut data);
-    let mut zerosvec: Vec<u8> = vec![0, 0, 0, 0, 0, 0];
+    let mut zerosvec: Vec<usize> = vec![0,0,0,0,0,0];
     values.append(&mut zerosvec);
     let polymod_res = polymod(&values) ^ BECH32M_CONST;
     let mut checksum_vec: Vec<usize> = Vec::with_capacity(6);
@@ -65,20 +65,54 @@ pub fn create_checksum(hrp: &str, data: &str) -> Vec<usize> {
     checksum_vec
 }
 
-pub fn hrp_expand(hrp: &str) -> Vec<u8> {
+pub fn hrp_expand( hrp: &str) -> Vec<usize> {
     let hrpiter = hrp.chars();
-    let mut hrpx: Vec<u8> = Vec::new();
+    let hrpiter2 = hrpiter.clone();     // A better way would be to borrow the iterator into the loop but I am not in the mood to do it rn.
+    // The clone is required as the iterator is consumed upon use. More specifically, it moves into the for loop when being called as it is.
+    let mut hrpx: Vec<usize> = Vec::new();
     for c in hrpiter {
-        // let mut cc = String::new();
-        // dbg!(&c);
-        hrpx.push((c as u8) >> 5);
-        hrpx.push(0 as u8);
-        hrpx.push((c as u8) & 31)
+        hrpx.push((c as usize) >> 5);
+    }
+    hrpx.push(0 as usize);
+    for c in hrpiter2 {
+        hrpx.push((c as usize) & 31);
     }
     hrpx
 }
 
-pub fn valideh(teststr: &str) -> &str {
+pub fn encode(hrp: &str, data: &str) -> String {
+    let checksum = create_checksum(hrp, data);
+    let dataint = data_to_int(data);
+    let mut combined: Vec<usize> = Vec::new();
+    let mut dataiter = dataint.iter();
+    let mut dataindex = dataiter.next(); // Note the iterator provides &usize return despite arraw being of usize elements.
+    while dataindex != None {
+        combined.push(*dataindex.unwrap());
+        dataindex = dataiter.next();
+    }
+    let mut checksum_iter = checksum.iter();
+    let mut checksumindex = checksum_iter.next();
+    while checksumindex != None {
+        combined.push(*checksumindex.unwrap());
+        checksumindex = checksum_iter.next();
+    }
+
+    let mut encoded_string = String::new();
+    encoded_string.push_str(hrp);
+    encoded_string.push('1');
+    
+    for i in combined {
+        let string_index = (i/8) as usize;
+        let holder_string = DATA_LUT[string_index];
+        encoded_string.push(holder_string.chars().nth(i - 8*string_index).unwrap());
+    }
+
+    encoded_string
+}
+
+
+
+pub fn valideh( teststr: &str ) -> &str {
     /*
     ===THIS IS PART OF THE MAIN CODE. THIS FUNCTION WILL BE USED INSIDE MAIN (main.rs) FILE
     FOR FUNCTIONALITY.===
@@ -114,40 +148,26 @@ pub fn valideh(teststr: &str) -> &str {
                 }
             }
 
-            hrp = &teststr[..separator];
-            datapart = &teststr[separator + 1..];
-
-            // dbg!(&hrp);
-            // dbg!(&datapart);
-            println!(
-                "🔛 {} is split into {} as hrp and {} as data",
-                teststr, hrp, datapart
-            );
-
-            if hrp.len() > 0 {
-                let hrpiter = hrp.chars();
-                let mut casecheckflag: u8 = 0; //0 = not set. 1 = uppercase chars. 2 = lowercase chars.
-                for i in hrpiter {
-                    // dbg!(&i);
-                    // Valid character range check
-                    if i >= '\u{0021}' && i <= '\u{007E}' {
-                        // ASCII 33 - 126 translation into UTF-8
-                        // println!("valid char range test pass")
-                        //Mix case check
-                        if i.is_lowercase() {
-                            if casecheckflag == 1 {
-                                response = "INVALID: MIX CASE HRP";
-                                println!("{}", response);
-                                return response;
-                            }
-                            casecheckflag = 2;
-                        } else if i.is_uppercase() {
-                            if casecheckflag == 2 {
-                                response = "INVALID: MIX CASE HRP";
-                                println!("{}", response);
-                                return response;
-                            }
-                            casecheckflag = 1;
+            let hrpiter = hrp.chars();
+            let mut casecheckflag: usize = 0;      //0 = not set. 1 = uppercase chars. 2 = lowercase chars.
+            for i in hrpiter{
+                // dbg!(&i);
+                // Valid character range check
+                if i >= '\u{0021}' && i <= '\u{007E}' {     // ASCII 33 - 126 translation into UTF-8
+                    // println!("valid char range test pass")
+                    //Mix case check
+                    if i.is_lowercase(){
+                        if casecheckflag == 1 {
+                            response = "INVALID: MIX CASE HRP";
+                            println!("{}",response);
+                            return response;
+                        }
+                        casecheckflag = 2;
+                    } else if i.is_uppercase(){
+                        if casecheckflag == 2 {
+                            response = "INVALID: MIX CASE HRP";
+                            println!("{}",response);
+                            return response;
                         }
 
                         /*
@@ -212,12 +232,10 @@ pub fn valideh(teststr: &str) -> &str {
     }
 
     // Dummy test for testing tests. Remove before submission.
-    if teststr.eq("A1LQFN3A") {
-        // The very first string in the list.
-        "VALID"
-    } else {
-        "INVALID"
-    }
+    // if teststr.eq("A1LQFN3A") { // The very first string in the list.
+    //     "VALID"
+    // } else { "INVALID" }
+    "YOU SHOULDNT BE HERE"
 }
 
 //  ========== TESTS START HERE ==========
@@ -240,8 +258,7 @@ mod tests {
         The test to test valid bech32m vectors.
         */
 
-        let fileasstr =
-            fs::read_to_string(".\\validbech32m.json").expect(" Error parsing test file as string");
+        let fileasstr = fs::read_to_string("./validbech32m.json").expect(" Error parsing test file as string");
         // The current directory for testing would be the root directory (which contains the src folder)
         // Thus the file has been copied there as well.
 
