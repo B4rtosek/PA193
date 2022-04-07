@@ -1,9 +1,14 @@
-use std::fs;
+use std::{fs, result};
 use serde_json::Value;      // Hardcode the test vectors in the code and remove this.
 
 
 const BECH32M_CONST : usize = 0x2bc830a3;
 const DATA_LUT : [&'static str; 4] = ["qpzry9x8","gf2tvdw0","s3jn54kh","ce6mua7l"];
+
+pub struct ValidationResponse {
+    result: bool,
+    reason: String
+}
 
 pub fn data_to_int(data: &str) -> Vec<usize> {
     let dataiter = data.chars();
@@ -77,7 +82,10 @@ pub fn hrp_expand( hrp: &str) -> Vec<usize> {
     hrpx
 }
 
-pub fn encode(hrp: &str, data: &str) -> String {
+fn encode(hrp: &str, data: &str) -> String {
+    /*
+    Unsafe function. Doesn't check the validity of hrp and data strings.
+    */
     let checksum = create_checksum(hrp, data);
     let dataint = data_to_int(data);
     let mut combined: Vec<usize> = Vec::new();
@@ -107,9 +115,47 @@ pub fn encode(hrp: &str, data: &str) -> String {
     encoded_string
 }
 
+fn hrp_valideh( hrp: &str ) -> ValidationResponse {
+    let hrp_len = hrp.len();
 
+    let mut response = String::new();
+    if hrp_len >= 1 && hrp_len <= 83 {
 
-pub fn valideh( teststr: &str ) -> &str {
+        let hrpiter = hrp.chars();
+        let mut casecheckflag: usize = 0;      //0 = not set. 1 = uppercase chars. 2 = lowercase chars.
+        for i in hrpiter{
+            // dbg!(&i);
+            // Valid character range check
+            if i >= '\u{0021}' && i <= '\u{007E}' {     // ASCII 33 - 126 translation into UTF-8
+                //Mix case check
+                if i.is_lowercase(){
+                    if casecheckflag == 1 {
+                        response = "INVALID: MIX CASE HRP".to_owned();
+                        return ValidationResponse{result: false, reason: response}
+                    }
+                    casecheckflag = 2;
+                } else if i.is_uppercase(){
+                    if casecheckflag == 2 {
+                        response = "INVALID: MIX CASE HRP".to_owned();
+                        return ValidationResponse{result: false, reason: response}
+                    }
+                    casecheckflag = 1;
+                }
+            } else {
+                response = "INVALID: HRP CHARACTERS INVALID".to_owned();
+                return ValidationResponse{result: false, reason: response}
+            }
+        }
+    } else {
+        response = "INVALID: HRP LENGTH OUT OF RANGE".to_owned();
+        return ValidationResponse{result: false, reason: response}
+    }
+
+    ValidationResponse { result: true, reason: response }
+
+}
+
+pub fn valideh( teststr: &str ) -> ValidationResponse {
     /*
     ===THIS IS PART OF THE MAIN CODE. THIS FUNCTION WILL BE USED INSIDE MAIN (main.rs) FILE
     FOR FUNCTIONALITY.===
@@ -126,17 +172,12 @@ pub fn valideh( teststr: &str ) -> &str {
         // Length check.
         let teststrlen = teststr.len();
         if teststrlen <= 90 && teststrlen > 0 {
-
-        // let teststrparts: Vec<&str> = teststr.split("1").collect();
-        // let hrp = teststrparts[..teststrparts.len()-1].join("");
-        // let datapart = String::from(*teststrparts.last().unwrap());
         
         let hrp: &str;
         let datapart: &str;
         
         /*
-        Better logic exists using &str::rfind()
-        Maybe even rsplit_once()
+        Better logic exists using rsplit_once()
         */
         let mut separator: usize = 0;
         let teststriter = teststr.chars().enumerate();
@@ -155,35 +196,12 @@ pub fn valideh( teststr: &str ) -> &str {
         // dbg!(&datapart);
         println!("🔛 {} is split into {} as hrp and {} as data", teststr, hrp, datapart);
 
-        if hrp.len() > 0 {
-
-            let hrpiter = hrp.chars();
-            let mut casecheckflag: usize = 0;      //0 = not set. 1 = uppercase chars. 2 = lowercase chars.
-            for i in hrpiter{
-                // dbg!(&i);
-                // Valid character range check
-                if i >= '\u{0021}' && i <= '\u{007E}' {     // ASCII 33 - 126 translation into UTF-8
-                    // println!("valid char range test pass")
-                    //Mix case check
-                    if i.is_lowercase(){
-                        if casecheckflag == 1 {
-                            response = "INVALID: MIX CASE HRP";
-                            println!("{}",response);
-                            return response;
-                        }
-                        casecheckflag = 2;
-                    } else if i.is_uppercase(){
-                        if casecheckflag == 2 {
-                            response = "INVALID: MIX CASE HRP";
-                            println!("{}",response);
-                            return response;
-                        }
-                        casecheckflag = 1;
-                    }
+        let hrp_res = hrp_valideh(hrp);
+        if hrp_res.result == false {
+            return hrp_res
+        }
 
                     /*
-                    I believe the HRP checking ends here. Hereafter we need to verify the data(checksum) section.
-
                     The data part, which is at least 6 characters long and only consists of alphanumeric characters excluding "1", "b", "i", and "o"[4].
                     */
                     let hrp = hrp.to_ascii_lowercase();
@@ -191,9 +209,9 @@ pub fn valideh( teststr: &str ) -> &str {
                     let datapart = datapart.to_ascii_lowercase();
                     let datapart = datapart.as_str();
                     if datapart.len() < 6 {
-                        response = "INVALID: DATAPART LENGTH TOO SMALL";
+                        response = "INVALID: DATAPART LENGTH TOO SMALL".to_owned();
                         println!("{}",response);
-                        return response;
+                        return ValidationResponse{result: false, reason: response}
                     } else {
                         let datachars = datapart.chars();
                         for i in datachars {
@@ -202,47 +220,33 @@ pub fn valideh( teststr: &str ) -> &str {
                                 /*
                                 Data character validity testing ends here. The tests to compute and test the checksums should follow.
                                 */
+                                let _res;
                                 if verify_checksum(hrp, datapart) { 
-                                    response = "VALID";
+                                    response = "VALID".to_owned();
+                                    _res = true;
                                 } else {
-                                    response = "INVALID: CHECKSUM VALIDATION FAILED";
+                                    response = "INVALID: CHECKSUM VALIDATION FAILED".to_owned();
+                                    _res = false;
                                 }
 
-                                return response;
+                                return ValidationResponse{result: _res, reason: response};
                             } else {
-                                response = "INVALID: INVALID CHARACTERS IN DATA";
+                                response = "INVALID: INVALID CHARACTERS IN DATA".to_owned();
                                 println!("{}",response);
-                                return response;                 
+                                return ValidationResponse{ result: false, reason: response}                 
                             }
                         }
                     }
                     
-
-
-                } else {
-                    response = "INVALID: HRP INVALID CHARACTER";
-                    println!("{}",response);
-                    return response;
-                }
-            }
-
         } else {
-            response = "INVALID: HRP EMPTY";
+            response = "INVALID: LENGTH OUT OF RANGE".to_owned();
             println!("{}",response);
-            return response;
-        }
-
-
-
-        } else {
-            response = "INVALID: LENGTH OUT OF RANGE";
-            println!("{}",response);
-            return response;
+            return ValidationResponse{ result: false, reason: response}
         }
     } else {
-        response = "INVALID: SEPARATOR NOT FOUND";
+        response = "INVALID: SEPARATOR NOT FOUND".to_owned();
         println!("{}",response);
-        return response;
+        return ValidationResponse{ result: false, reason: response}
     }
     
 
@@ -251,7 +255,7 @@ pub fn valideh( teststr: &str ) -> &str {
     // if teststr.eq("A1LQFN3A") { // The very first string in the list.
     //     "VALID"
     // } else { "INVALID" }
-    "YOU SHOULDNT BE HERE"
+    ValidationResponse{ result: false, reason: "YOU SHOULDNT BE HERE".to_owned() }
 }
 
 //  ========== TESTS START HERE ==========
@@ -287,9 +291,9 @@ mod tests {
         while iter < jsonval["VALID_BECH32M"].as_array().unwrap().len() {
             let theword = jsonval["VALID_BECH32M"][iter].as_str().unwrap();
             let theresult = valideh(&theword);
-            if theresult.ne("VALID") {
+            if !theresult.result {
                 println!("\n ==== {} : DID NOT RECEIVE VALIDATION ====\n\n",theword);
-                println!("{}",theresult);
+                println!("{}",theresult.reason);
                 panic!();
             }
             iter += 1;
