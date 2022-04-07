@@ -1,4 +1,4 @@
-use std::{fs, result};
+use std::{fs, result, io::Error, io::ErrorKind};
 use serde_json::Value;      // Hardcode the test vectors in the code and remove this.
 
 
@@ -85,10 +85,14 @@ pub fn hrp_expand( hrp: &str) -> Vec<usize> {
     hrpx
 }
 
-fn encode(hrp: &str, data: &str) -> String {
+pub fn encode(hrp: &str, data: &str) -> Result<String, Error> {
     /*
     Unsafe function. Doesn't check the validity of hrp and data strings.
     */
+    let hrpvalres = hrp_valideh(hrp);
+    if !hrpvalres.result{
+        return Err(std::io::Error::new(ErrorKind::Other,format!("Error with HRP: {}",hrpvalres.reason)));
+    }
     let checksum = create_checksum(hrp, data);
     let dataint = data_to_int(data);
     let mut combined: Vec<usize> = Vec::new();
@@ -115,7 +119,7 @@ fn encode(hrp: &str, data: &str) -> String {
         encoded_string.push(holder_string.chars().nth(i - 8*string_index).unwrap());
     }
 
-    encoded_string
+    Ok(encoded_string)
 }
 
 fn hrp_valideh( hrp: &str ) -> ValidationResponse {
@@ -203,42 +207,42 @@ pub fn valideh( teststr: &str ) -> ValidationResponse {
             return hrp_res
         }
 
-                    /*
-                    The data part, which is at least 6 characters long and only consists of alphanumeric characters excluding "1", "b", "i", and "o"[4].
-                    */
-                    let hrp = hrp.to_ascii_lowercase();
-                    let hrp = hrp.as_str();
-                    let datapart = datapart.to_ascii_lowercase();
-                    let datapart = datapart.as_str();
-                    if datapart.len() < 6 {
-                        response = "INVALID: DATAPART LENGTH TOO SMALL".to_owned();
-                        println!("{}",response);
-                        return ValidationResponse{result: false, reason: response}
-                    } else {
-                        let datachars = datapart.chars();
-                        for i in datachars {
-                            if i.is_ascii_alphanumeric() && i != '1' && i != 'b' && i != 'i' && i != 'o' {
-                                
-                                /*
-                                Data character validity testing ends here. The tests to compute and test the checksums should follow.
-                                */
-                                let _res;
-                                if verify_checksum(hrp, datapart) { 
-                                    response = "VALID".to_owned();
-                                    _res = true;
-                                } else {
-                                    response = "INVALID: CHECKSUM VALIDATION FAILED".to_owned();
-                                    _res = false;
-                                }
-
-                                return ValidationResponse{result: _res, reason: response};
-                            } else {
-                                response = "INVALID: INVALID CHARACTERS IN DATA".to_owned();
-                                println!("{}",response);
-                                return ValidationResponse{ result: false, reason: response}                 
-                            }
+            /*
+            The data part, which is at least 6 characters long and only consists of alphanumeric characters excluding "1", "b", "i", and "o"[4].
+            */
+            let hrp = hrp.to_ascii_lowercase();
+            let hrp = hrp.as_str();
+            let datapart = datapart.to_ascii_lowercase();
+            let datapart = datapart.as_str();
+            if datapart.len() < 6 {
+                response = "INVALID: DATAPART LENGTH TOO SMALL".to_owned();
+                println!("{}",response);
+                return ValidationResponse{result: false, reason: response}
+            } else {
+                let datachars = datapart.chars();
+                for i in datachars {
+                    if i.is_ascii_alphanumeric() && i != '1' && i != 'b' && i != 'i' && i != 'o' {
+                        
+                        /*
+                        Data character validity testing ends here. The tests to compute and test the checksums should follow.
+                        */
+                        let _res;
+                        if verify_checksum(hrp, datapart) { 
+                            response = "VALID".to_owned();
+                            _res = true;
+                        } else {
+                            response = "INVALID: CHECKSUM VALIDATION FAILED".to_owned();
+                            _res = false;
                         }
+
+                        return ValidationResponse{result: _res, reason: response};
+                    } else {
+                        response = "INVALID: INVALID CHARACTERS IN DATA".to_owned();
+                        println!("{}",response);
+                        return ValidationResponse{ result: false, reason: response}                 
                     }
+                }
+            }
                     
         } else {
             response = "INVALID: LENGTH OUT OF RANGE".to_owned();
@@ -250,7 +254,6 @@ pub fn valideh( teststr: &str ) -> ValidationResponse {
         println!("{}",response);
         return ValidationResponse{ result: false, reason: response}
     }
-    
     ValidationResponse{ result: false, reason: "YOU SHOULDNT BE HERE".to_owned() }
 }
 
