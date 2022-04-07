@@ -14,7 +14,7 @@ pub fn data_to_int(data: &str) -> Vec<usize> {
     let dataiter = data.chars();
     let mut dataint: Vec<usize> = Vec::new();
     for i in dataiter {
-        for j in 0 .. 4 {
+        for j in 0..4 {
             if let Some(v) = DATA_LUT[j].find(i) {
                 let val = (8*j + v) as usize;
                 dataint.push(val);
@@ -31,8 +31,12 @@ pub fn polymod(values: &Vec<usize>) -> usize {
     for i in values {
         let b = chk >> 25;
         chk = ((chk & 0x1ffffff) << 5) ^ (*i as usize);
-        for j in 0 .. 5 {
-            chk ^= if ((b >> j) & 1) != 0 { GEN[j] } else { 0 as usize };
+        for j in 0..5 {
+            chk ^= if ((b >> j) & 1) != 0 {
+                GEN[j]
+            } else {
+                0 as usize
+            };
         }
     }
 
@@ -40,15 +44,14 @@ pub fn polymod(values: &Vec<usize>) -> usize {
 }
 
 pub fn verify_checksum(hrp: &str, data: &str) -> bool {
-    
     println!("💀 Received {} as hrp and {} as data", hrp, data);
-    let mut hrp = hrp_expand( hrp );
+    let mut hrp = hrp_expand(hrp);
     println!("💀 HRP expanded to: {:?}", &hrp);
     let mut data = data_to_int(data);
     println!("💀 Data to int looks like: {:?}", &data);
     hrp.append(&mut data);
     println!("💀 Sending {:?} to polymod", &hrp);
-    let res = polymod( &hrp );
+    let res = polymod(&hrp);
     println!("💀 Result of the polymod is => {}", &res);
     res == BECH32M_CONST
 }
@@ -168,7 +171,6 @@ pub fn valideh( teststr: &str ) -> ValidationResponse {
     // Separator check.
     // THis test should actually follow the length check. It gets tested implicitly when bifurcating the code into data and hrp.
     if teststr.contains("1") {
-
         // Length check.
         let teststrlen = teststr.len();
         if teststrlen <= 90 && teststrlen > 0 {
@@ -249,12 +251,6 @@ pub fn valideh( teststr: &str ) -> ValidationResponse {
         return ValidationResponse{ result: false, reason: response}
     }
     
-
-
-    // Dummy test for testing tests. Remove before submission.
-    // if teststr.eq("A1LQFN3A") { // The very first string in the list.
-    //     "VALID"
-    // } else { "INVALID" }
     ValidationResponse{ result: false, reason: "YOU SHOULDNT BE HERE".to_owned() }
 }
 
@@ -270,12 +266,10 @@ we can work on ~independently.
 
 #[cfg(test)]
 mod tests {
-    
     use super::*;
 
     #[test]
     fn isvalid() {
-        
         /*
         The test to test valid bech32m vectors.
         */
@@ -284,7 +278,7 @@ mod tests {
         // The current directory for testing would be the root directory (which contains the src folder)
         // Thus the file has been copied there as well.
 
-        let jsonval: Value = serde_json::from_str(&fileasstr[..]).expect("JSON parsing error");     // &xyz[..] convert String xyx to &str which is the required type &str.
+        let jsonval: Value = serde_json::from_str(&fileasstr[..]).expect("JSON parsing error"); // &xyz[..] convert String xyx to &str which is the required type &str.
 
         let mut iter = 0;
 
@@ -299,7 +293,6 @@ mod tests {
             iter += 1;
         }
         // assert_eq!("VALID",valideh(jsonval["VALID_BECH32M"][1].as_str().unwrap()));
-
     }
 
     #[test]
@@ -307,7 +300,7 @@ mod tests {
         /*
         Test the invalid bech32m vectors here.
         */
-        assert_eq!(1,1)
+        assert_eq!(1, 1)
     }
 
     #[test]
