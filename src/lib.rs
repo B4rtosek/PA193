@@ -1,7 +1,9 @@
+use std::str::Chars;
 use std::{io::Error, io::ErrorKind};
 
 const BECH32M_CONST: usize = 0x2bc830a3;
 const DATA_LUT: [&'static str; 4] = ["qpzry9x8", "gf2tvdw0", "s3jn54kh", "ce6mua7l"];
+const CHARSET: &str = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
 
 pub struct ValidationResponse {
     result: bool,
@@ -83,7 +85,23 @@ pub fn hrp_expand(hrp: &str) -> Vec<usize> {
     hrpx
 }
 
+pub fn decode(bech_string: &str) -> Vec<usize> {
+    let bech = bech_string.to_lowercase();
+    let index = bech.find('1').unwrap() + 1;
+    let len = bech.chars().count();
+
+
+    let mut result: Vec<usize> = Vec::new();
+    for p in index..len {
+        result.push(CHARSET.find(bech.chars().nth(p).unwrap()).unwrap());
+    }
+
+    result.truncate(result.len().saturating_sub(6));
+    return result;
+}
+
 pub fn encode(hrp: &str, data: &str) -> Result<String, Error> {
+
     /*
     Unsafe function. Doesn't check the validity of hrp and data strings.
     */
@@ -113,12 +131,7 @@ pub fn encode(hrp: &str, data: &str) -> Result<String, Error> {
     let mut encoded_string = String::new();
     encoded_string.push_str(hrp);
     encoded_string.push('1');
-    for i in combined {
-        let string_index = (i / 8) as usize;
-        let holder_string = DATA_LUT[string_index];
-        encoded_string.push(holder_string.chars().nth(i - 8 * string_index).unwrap());
-    }
-
+    
     Ok(encoded_string)
 }
 
