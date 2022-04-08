@@ -1,5 +1,4 @@
-use serde_json::Value;
-use std::{fs, io::Error, io::ErrorKind, result}; // Hardcode the test vectors in the code and remove this.
+use std::{io::Error, io::ErrorKind};
 
 const BECH32M_CONST: usize = 0x2bc830a3;
 const DATA_LUT: [&'static str; 4] = ["qpzry9x8", "gf2tvdw0", "s3jn54kh", "ce6mua7l"];
@@ -24,7 +23,7 @@ pub fn data_to_int(data: &str) -> Vec<usize> {
 }
 
 pub fn polymod(values: &Vec<usize>) -> usize {
-    let GEN: Vec<usize> = vec![0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
+    let gen: Vec<usize> = vec![0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
     let mut chk = 1 as usize;
 
     for i in values {
@@ -32,7 +31,7 @@ pub fn polymod(values: &Vec<usize>) -> usize {
         chk = ((chk & 0x1ffffff) << 5) ^ (*i as usize);
         for j in 0..5 {
             chk ^= if ((b >> j) & 1) != 0 {
-                GEN[j]
+                gen[j]
             } else {
                 0 as usize
             };
@@ -305,7 +304,7 @@ mod tests {
 
     #[test]
     fn isvalid() {
-        let validVectors: [&str; 7] = [
+        let valid_vectors: [&str; 7] = [
             "A1LQFN3A", 
             "a1lqfn3a", 
             "an83characterlonghumanreadablepartthatcontainsthetheexcludedcharactersbioandnumber11sg7hg6",
@@ -315,7 +314,7 @@ mod tests {
             "?1v759aa"
         ];
 
-        for vector in &validVectors {
+        for vector in &valid_vectors {
             let validation = valideh(vector);
 
             assert_eq!(validation.result, true);
@@ -324,7 +323,7 @@ mod tests {
 
     #[test]
     fn isinvalid() {
-        let invalidVectors: [&str; 13] = [
+        let invalid_vectors: [&str; 13] = [
             " 1xj0phk", 
             "\x7F1g6xzxy", 
             "\x701vctc34",
@@ -340,7 +339,7 @@ mod tests {
             "1p2gdwpf"
         ];
 
-        for vector in &invalidVectors {
+        for vector in &invalid_vectors {
             let validation = valideh(vector);
 
             assert_eq!(validation.result, false);
