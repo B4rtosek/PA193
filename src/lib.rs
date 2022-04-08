@@ -273,39 +273,35 @@ mod tests {
 
     #[test]
     fn isvalid() {
-        /*
-        The test to test valid bech32m vectors.
-        */
-
-        let fileasstr = fs::read_to_string("./validbech32m.json").expect(" Error parsing test file as string");
-        // The current directory for testing would be the root directory (which contains the src folder)
-        // Thus the file has been copied there as well.
-
-        let jsonval: Value = serde_json::from_str(&fileasstr[..]).expect("JSON parsing error"); // &xyz[..] convert String xyx to &str which is the required type &str.
-
-        let mut iter = 0;
-
-        while iter < jsonval["VALID_BECH32M"].as_array().unwrap().len() {
-            let theword = jsonval["VALID_BECH32M"][iter].as_str().unwrap();
-            let theresult = valideh(&theword);
-            if !theresult.result {
-                println!("\n ==== {} : DID NOT RECEIVE VALIDATION ====\n\n",theword);
-                println!("{}",theresult.reason);
-                panic!();
-            }
-            iter += 1;
-        }
-        // assert_eq!("VALID",valideh(jsonval["VALID_BECH32M"][1].as_str().unwrap()));
+        assert_eq!(valideh("A1LQFN3A"), "VALID");
+        assert_eq!(valideh("a1lqfn3a"), "VALID");
+        assert_eq!(valideh("an83characterlonghumanreadablepartthatcontainsthetheexcludedcharactersbioandnumber11sg7hg6"), "VALID");
+        assert_eq!(
+            valideh("abcdef1l7aum6echk45nj3s0wdvt2fg8x9yrzpqzd3ryx"),
+            "VALID"
+        );
+        assert_eq!(valideh("11llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllludsr8"), "VALID");
+        assert_eq!(
+            valideh("split1checkupstagehandshakeupstreamerranterredcaperredlc445v"),
+            "VALID"
+        );
+        assert_eq!(valideh("?1v759aa"), "VALID");
     }
 
     #[test]
     fn isinvalid() {
-        /*
-        Test the invalid bech32m vectors here.
-        */
-        assert_eq!(1, 1)
+        assert_ne!(valideh(" 1xj0phk"), "VALID");
+        assert_ne!(valideh("\x7F1g6xzxy"), "VALID");
+        assert_ne!(valideh("\x701vctc34"), "VALID");
+        assert_ne!(valideh("an84characterslonghumanreadablepartthatcontainsthetheexcludedcharactersbioandnumber11d6pts4"), "VALID");
+        assert_ne!(valideh("qyrz8wqd2c9m"), "VALID");
+        assert_ne!(valideh("y1b0jsk6g"), "VALID");
+        assert_ne!(valideh("lt1igcx5c0"), "VALID");
+        assert_ne!(valideh("in1muywd"), "VALID");
+        assert_ne!(valideh("mm1crxm3i"), "VALID");
+        assert_ne!(valideh("au1s5cgom"), "VALID");
+        assert_ne!(valideh("M1VUXWEZ"), "VALID");
+        assert_ne!(valideh("16plkw9"), "VALID");
+        assert_ne!(valideh("1p2gdwpf"), "VALID");
     }
-
-    #[test]
-    fn emptytest() {}
 }
