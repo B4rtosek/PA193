@@ -305,35 +305,45 @@ mod tests {
 
     #[test]
     fn isvalid() {
-        assert_eq!(valideh("A1LQFN3A"), "VALID");
-        assert_eq!(valideh("a1lqfn3a"), "VALID");
-        assert_eq!(valideh("an83characterlonghumanreadablepartthatcontainsthetheexcludedcharactersbioandnumber11sg7hg6"), "VALID");
-        assert_eq!(
-            valideh("abcdef1l7aum6echk45nj3s0wdvt2fg8x9yrzpqzd3ryx"),
-            "VALID"
-        );
-        assert_eq!(valideh("11llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllludsr8"), "VALID");
-        assert_eq!(
-            valideh("split1checkupstagehandshakeupstreamerranterredcaperredlc445v"),
-            "VALID"
-        );
-        assert_eq!(valideh("?1v759aa"), "VALID");
+        let validVectors: [&str; 7] = [
+            "A1LQFN3A", 
+            "a1lqfn3a", 
+            "an83characterlonghumanreadablepartthatcontainsthetheexcludedcharactersbioandnumber11sg7hg6",
+            "abcdef1l7aum6echk45nj3s0wdvt2fg8x9yrzpqzd3ryx", 
+            "11llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllludsr8", 
+            "split1checkupstagehandshakeupstreamerranterredcaperredlc445v", 
+            "?1v759aa"
+        ];
+
+        for vector in &validVectors {
+            let validation = valideh(vector);
+
+            assert_eq!(validation.result, true);
+        }
     }
 
     #[test]
     fn isinvalid() {
-        assert_ne!(valideh(" 1xj0phk"), "VALID");
-        assert_ne!(valideh("\x7F1g6xzxy"), "VALID");
-        assert_ne!(valideh("\x701vctc34"), "VALID");
-        assert_ne!(valideh("an84characterslonghumanreadablepartthatcontainsthetheexcludedcharactersbioandnumber11d6pts4"), "VALID");
-        assert_ne!(valideh("qyrz8wqd2c9m"), "VALID");
-        assert_ne!(valideh("y1b0jsk6g"), "VALID");
-        assert_ne!(valideh("lt1igcx5c0"), "VALID");
-        assert_ne!(valideh("in1muywd"), "VALID");
-        assert_ne!(valideh("mm1crxm3i"), "VALID");
-        assert_ne!(valideh("au1s5cgom"), "VALID");
-        assert_ne!(valideh("M1VUXWEZ"), "VALID");
-        assert_ne!(valideh("16plkw9"), "VALID");
-        assert_ne!(valideh("1p2gdwpf"), "VALID");
+        let invalidVectors: [&str; 13] = [
+            " 1xj0phk", 
+            "\x7F1g6xzxy", 
+            "\x701vctc34",
+            "an84characterslonghumanreadablepartthatcontainsthetheexcludedcharactersbioandnumber11d6pts4", 
+            "qyrz8wqd2c9m", 
+            "y1b0jsk6g", 
+            "lt1igcx5c0", 
+            "in1muywd", 
+            "mm1crxm3i", 
+            "au1s5cgom", 
+            "M1VUXWEZ", 
+            "16plkw9", 
+            "1p2gdwpf"
+        ];
+
+        for vector in &invalidVectors {
+            let validation = valideh(vector);
+
+            assert_eq!(validation.result, false);
+        }
     }
 }
