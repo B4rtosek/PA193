@@ -1,4 +1,3 @@
-use std::str::Chars;
 use std::{io::Error, io::ErrorKind};
 
 const BECH32M_CONST: usize = 0x2bc830a3;
@@ -8,6 +7,11 @@ const CHARSET: &str = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
 pub struct ValidationResponse {
     result: bool,
     reason: String,
+}
+
+pub struct DecodedData {
+    pub hrp: String,
+    pub data: Vec<usize>,
 }
 
 pub fn data_to_int(data: &str) -> Vec<usize> {
@@ -43,6 +47,17 @@ pub fn polymod(values: &Vec<usize>) -> usize {
     chk
 }
 
+pub fn verify_data_checksum(hrp: &str, mut data: Vec<usize>) -> bool {
+    println!("💀 Received {} as hrp and {:?} as data", hrp, data);
+    let mut hrp = hrp_expand(hrp);
+    println!("💀 HRP expanded to: {:?}", &hrp);
+    hrp.append(&mut data);
+    println!("💀 Sending {:?} to polymod", &hrp);
+    let res = polymod(&hrp);
+    println!("💀 Result of the polymod is => {}", &res);
+    res == BECH32M_CONST
+}
+
 pub fn verify_checksum(hrp: &str, data: &str) -> bool {
     println!("💀 Received {} as hrp and {} as data", hrp, data);
     let mut hrp = hrp_expand(hrp);
@@ -71,33 +86,82 @@ pub fn create_checksum(hrp: &str, data: &str) -> Vec<usize> {
 }
 
 pub fn hrp_expand(hrp: &str) -> Vec<usize> {
-    let hrpiter = hrp.chars();
-    let hrpiter2 = hrpiter.clone(); // A better way would be to borrow the iterator into the loop but I am not in the mood to do it rn.
-                                    // The clone is required as the iterator is consumed upon use. More specifically, it moves into the for loop when being called as it is.
     let mut hrpx: Vec<usize> = Vec::new();
-    for c in hrpiter {
+
+    for c in hrp.chars() {
         hrpx.push((c as usize) >> 5);
     }
-    hrpx.push(0 as usize);
-    for c in hrpiter2 {
+
+    hrpx.push(0);
+
+    for c in hrp.chars() {
         hrpx.push((c as usize) & 31);
     }
-    hrpx
+
+    return hrpx;
 }
 
-pub fn decode(bech_string: &str) -> Vec<usize> {
-    let bech = bech_string.to_lowercase();
-    let index = bech.find('1').unwrap() + 1;
-    let len = bech.chars().count();
+pub fn decode(bech_string: &str) -> Result<DecodedData, Error> {
+    let mut has_lowercase_char = false;
+    let mut has_uppercase_char = false;
+    
+    for c in bech_string.chars() {
+        let ascii_value = c as usize;
 
+        if ascii_value < 33 || ascii_value > 126 {
+            return Err(std::io::Error::new(ErrorKind::Other, format!("Invalid character: {}", c)));
+        }
+
+        if ascii_value >= 97 && ascii_value <= 122 {
+            has_lowercase_char = true;
+        }
+
+        if ascii_value >= 65 && ascii_value <= 90 {
+            has_uppercase_char = true;
+        }
+    }
+
+    if has_lowercase_char && has_uppercase_char {
+        return Err(std::io::Error::new(ErrorKind::Other, format!("Use only lowercase or uppercase characters, not both!")));
+    }
+
+    let bech = bech_string.to_lowercase();
+    let one_locations: Vec<_> = bech.match_indices("1").collect();
+    
+    if one_locations.len() < 1 {
+        return Err(std::io::Error::new(ErrorKind::Other, format!("Parsing failed. Invalid input.")));
+    }
+
+    let start_index = one_locations[one_locations.len() - 1].0;
+    let string_len = bech.chars().count();
+    
+    if start_index < 1 || start_index + 7 > string_len || string_len > 90 {
+        return Err(std::io::Error::new(ErrorKind::Other, format!("Parsing failed. Invalid input.")));
+    }
 
     let mut result: Vec<usize> = Vec::new();
-    for p in index..len {
-        result.push(CHARSET.find(bech.chars().nth(p).unwrap()).unwrap());
+    for p in start_index + 1 .. string_len {
+        let charset_char = CHARSET.find(bech.chars().nth(p).unwrap());
+
+        if charset_char == None {
+            return Err(std::io::Error::new(ErrorKind::Other, format!("Parsing failed. Invalid character in input.")));
+        }
+
+        result.push(charset_char.unwrap());
+    }
+
+    let hrp = &bech[0..start_index];
+
+    if !verify_data_checksum(hrp, result.clone()) {
+        return Err(std::io::Error::new(ErrorKind::Other, format!("Checksum validation failed!")));
     }
 
     result.truncate(result.len().saturating_sub(6));
-    return result;
+
+    Ok(DecodedData{
+        hrp: hrp.to_owned(),
+        data: result,
+    })
 }
 
 pub fn encode(hrp: &str, data: &str) -> Result<String, Error> {
@@ -393,6 +457,81 @@ mod tests {
             let validation = valideh(vector);
 
             assert_eq!(validation.result, false);
+        }
+    }
+
+    #[test]
+    fn decode_valid() {
+        let mut valid_results: Vec<(&str, DecodedData)> = Vec::new();
+
+        valid_results.push(("A1LQFN3A", DecodedData{
+            hrp: "a".to_owned(),
+            data: vec![],
+        }));
+
+        valid_results.push(("a1lqfn3a", DecodedData{
+            hrp: "a".to_owned(),
+            data: vec![],
+        }));
+
+        valid_results.push(("bc1pw508d6qejxtdg4y5r3zarvary0c5xw7kw508d6qejxtdg4y5r3zarvary0c5xw7kt5nd6y", DecodedData{
+            hrp: "bc".to_owned(),
+            data: vec![1, 14, 20, 15, 7, 13, 26, 0, 25, 18, 6, 11, 13, 8, 21, 4, 20, 3, 17, 2, 29, 3, 12, 29, 3, 4, 15, 24, 20, 6, 14, 30, 22, 14, 20, 15, 7, 13, 26, 0, 25, 18, 6, 11, 13, 8, 21, 4, 20, 3, 17, 2, 29, 3, 12, 29, 3, 4, 15, 24, 20, 6, 14, 30, 22],
+        }));
+
+        valid_results.push(("BC1SW50QGDZ25J", DecodedData{
+            hrp: "bc".to_owned(),
+            data: vec![16, 14, 20, 15, 0],
+        }));
+
+        valid_results.push(("bc1zw508d6qejxtdg4y5r3zarvaryvaxxpcs", DecodedData{
+            hrp: "bc".to_owned(),
+            data: vec![2, 14, 20, 15, 7, 13, 26, 0, 25, 18, 6, 11, 13, 8, 21, 4, 20, 3, 17, 2, 29, 3, 12, 29, 3, 4, 12],
+        }));
+
+        valid_results.push(("tb1pqqqqp399et2xygdj5xreqhjjvcmzhxw4aywxecjdzew6hylgvsesf3hn0c", DecodedData{
+            hrp: "tb".to_owned(),
+            data: vec![1, 0, 0, 0, 0, 1, 17, 5, 5, 25, 11, 10, 6, 4, 8, 13, 18, 20, 6, 3, 25, 0, 23, 18, 18, 12, 24, 27, 2, 23, 6, 14, 21, 29, 4, 14, 6, 25, 24, 18, 13, 2, 25, 14, 26, 23, 4, 31, 8, 12, 16, 25, 16],
+        }));
+
+        valid_results.push(("bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0", DecodedData{
+            hrp: "bc".to_owned(),
+            data: vec![1, 15, 6, 31, 6, 12, 31, 23, 25, 27, 18, 29, 26, 24, 21, 13, 0, 12, 10, 10, 28, 29, 1, 24, 11, 0, 28, 1, 9, 23, 31, 6, 27, 5, 23, 7, 2, 17, 22, 10, 25, 30, 10, 0, 21, 22, 5, 23, 24, 2, 30, 12, 0],
+        }));
+
+        valid_results.push(("?1v759aa", DecodedData{
+            hrp: "?".to_owned(),
+            data: vec![],
+        }));
+
+        valid_results.push(("split1checkupstagehandshakeupstreamerranterredcaperredlc445v", DecodedData{
+            hrp: "split".to_owned(),
+            data: vec![24, 23, 25, 24, 22, 28, 1, 16, 11, 29, 8, 25, 23, 29, 19, 13, 16, 23, 29, 22, 25, 28, 1, 16, 11, 3, 25, 29, 27, 25, 3, 3, 29, 19, 11, 25, 3, 3, 25, 13, 24, 29, 1, 25, 3, 3, 25, 13],
+        }));
+
+        valid_results.push(("11llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllludsr8", DecodedData{
+            hrp: "1".to_owned(),
+            data: vec![31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31],
+        }));
+
+        valid_results.push(("abcdef1l7aum6echk45nj3s0wdvt2fg8x9yrzpqzd3ryx", DecodedData{
+            hrp: "abcdef".to_owned(),
+            data: vec![31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0],
+        }));
+
+        valid_results.push(("an83characterlonghumanreadablepartthatcontainsthetheexcludedcharactersbioandnumber11sg7hg6", DecodedData{
+            hrp: "an83characterlonghumanreadablepartthatcontainsthetheexcludedcharactersbioandnumber1".to_owned(),
+            data: vec![],
+        }));
+        
+        for valid_result in valid_results {
+            let decode_result = decode(valid_result.0);
+
+            assert_eq!(decode_result.is_ok(), true);
+
+            let decoded_data = decode_result.unwrap();
+            assert_eq!(decoded_data.hrp, valid_result.1.hrp);
+            assert_eq!(decoded_data.data, valid_result.1.data);
         }
     }
 }
