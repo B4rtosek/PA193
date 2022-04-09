@@ -62,17 +62,17 @@ pub fn verify_checksum(hrp: &str, data: &str) -> bool {
     res == BECH32M_CONST
 }
 
-pub fn create_checksum(hrp: &str, data: &str) -> Vec<usize> {
+pub fn create_checksum(hrp: &str, mut data: Vec<usize>) -> Vec<usize> {
     let mut values: Vec<usize> = hrp_expand(hrp);
-    let mut data = data_to_int(data);
     values.append(&mut data);
     let mut zerosvec: Vec<usize> = vec![0, 0, 0, 0, 0, 0];
     values.append(&mut zerosvec);
     let polymod_res = polymod(&values) ^ BECH32M_CONST;
     let mut checksum_vec: Vec<usize> = Vec::with_capacity(6);
-    for i in (0..6).rev() {
-        checksum_vec.push((polymod_res >> 5 * i) & 31)
+    for i in 0..6 {
+        checksum_vec.push((polymod_res >> 5 * (5 - i)) & 31);
     }
+
     checksum_vec
 }
 
@@ -139,7 +139,7 @@ pub fn decode_hex(bech_string: &str) -> Result<String, Error> {
     }
 
     let data = decode_result.unwrap().data;
-    let convert_bits = convert_bits(data[1..data.len()].to_vec(), 5, 8, false);
+    let convert_bits = convert_bits(data.to_vec(), 5, 8, false);
 
     if convert_bits.is_err() {
         return Err(convert_bits.err().unwrap());
@@ -232,40 +232,22 @@ pub fn decode(bech_string: &str) -> Result<DecodedData, Error> {
     })
 }
 
-pub fn encode(hrp: &str, data: &str) -> Result<String, Error> {
-    /*
-    Unsafe function. Doesn't check the validity of hrp and data strings.
-    */
-    let hrpvalres = hrp_valideh(hrp);
-    if !hrpvalres.result {
-        return Err(std::io::Error::new(
-            ErrorKind::Other,
-            format!("Error with HRP: {}", hrpvalres.reason),
-        ));
-    }
-    let checksum = create_checksum(hrp, data);
-    let dataint = data_to_int(data);
-    let mut combined: Vec<usize> = Vec::new();
-    let mut dataiter = dataint.iter();
-    let mut dataindex = dataiter.next(); // Note the iterator provides &usize return despite arraw being of usize elements.
-    while dataindex != None {
-        combined.push(*dataindex.unwrap());
-        dataindex = dataiter.next();
-    }
-    let mut checksum_iter = checksum.iter();
-    let mut checksumindex = checksum_iter.next();
-    while checksumindex != None {
-        combined.push(*checksumindex.unwrap());
-        checksumindex = checksum_iter.next();
-    }
+pub fn encode(hrp: &str, data: Vec<usize>) -> Result<String, Error> {
+    let mut checksum = create_checksum(hrp, data.clone());
+
+    let mut combined: Vec<usize> = data;
+
+    dbg!(checksum.clone());
+    combined.append(&mut checksum);
+    
     let mut encoded_string = String::new();
     encoded_string.push_str(hrp);
-    encoded_string.push('1');
-    for i in combined {
-        let string_index = (i / 8) as usize;
-        let holder_string = DATA_LUT[string_index];
-        encoded_string.push(holder_string.chars().nth(i - 8 * string_index).unwrap());
+    encoded_string.push_str("1");
+
+    for c in combined {
+        encoded_string.push(CHARSET.chars().nth(c).unwrap());
     }
+
     Ok(encoded_string)
 }
 
@@ -494,7 +476,7 @@ mod tests {
     }
 
     #[test]
-    fn decode_valid() {
+    fn decode_encode_valid() {
         let mut valid_results: Vec<(&str, DecodedData)> = Vec::new();
 
         valid_results.push((
@@ -617,6 +599,10 @@ mod tests {
             let decoded_data = decode_result.unwrap();
             assert_eq!(decoded_data.hrp, valid_result.1.hrp);
             assert_eq!(decoded_data.data, valid_result.1.data);
+
+            let encode_result = encode(&*decoded_data.hrp, decoded_data.data);
+            assert_eq!(encode_result.is_ok(), true);
+            assert_eq!(encode_result.unwrap(), valid_result.0.to_lowercase());
         }
     }
 
@@ -626,22 +612,27 @@ mod tests {
 
         valid_results.push((
             "bc1pp3tck3286zd8gcvf4wv2lryakan245qth4sp8zxld0vfcfnk9uwqpdl8nf",
-            "0c578b4547d09a746189ab98af8c9db766aad00bbd601388df6bd89c26762f1c",
+            "0862bc5a2a3e84d3a30c4d5cc57c64edbb3556805deb009c46fb5ec4e133b178e0",
         ));
 
         valid_results.push((
-            "bc1ptfep7c3n3addv44m44pwua0ud5hg9f0fvqv3ssx8gvh",
-            "5a721f62338f5ad656bbad42ee75fc6d2e82a5e9601918",
+            "bc12my4q4v7x4x8ecul04slgs46xp52tyzd6l82klqy6rpssn",
+            "56c950559e354c7ce39f7d61f442ba3068a5904dd7ceab7c04",
         ));
 
         valid_results.push((
-            "bc1p0wvtajlj680zy40cq2rug3qmzmpk90wg0urc9a7u8hvhf6xal5cg83rj",
-            "7b98becbf2d1de2255f80287c4441b16c362bdc87f0782f7dc3dd974e8ddfd",
+            "bc1m6sp2zxdgtc6qwmkq20hcrlmzke0vwpqryf73mgu5a0lyms5jw3lx",
+            "dea01508cd42f1a03b76029f7c0ffb15b2f638201913e8ed1ca75ff26e",
         ));
 
         valid_results.push((
             "bc1pltv8xm6r3fcazgtaluuve9fd73h5d7kqqtzuvp240k7tjylt584qjmruzp",
-            "fad8736f438a71d1217dff38cc952df46f46fac002c5c605557dbcb913eba1ea",
+            "0fd6c39b7a1c538e890beff9c664a96fa37a37d600162e302aabede5c89f5d0f50",
+        ));
+
+        valid_results.push((
+            "bc1fdxhd859nj6zw8kxcqmruehwecghppcj",
+            "4b4d769e859cb4271ec6c0363e66eece",
         ));
 
         for valid_result in valid_results {
