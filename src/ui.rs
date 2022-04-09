@@ -128,5 +128,6 @@ fn ui_encode() -> String {
     let _ = io::stdout().flush();
     let data = io::stdin().lock().lines().next().unwrap().unwrap();
     let hrp = "bc";
-    return encode(hrp, data.as_str()).unwrap().to_string();
+    return "ASDF".to_string();
+    //return encode(hrp, data.as_str()).unwrap().to_string();
 }
