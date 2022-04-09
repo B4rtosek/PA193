@@ -134,7 +134,7 @@ pub fn decode_hex(bech_string: &str) -> Result<String, Error> {
 
     let data = decode_result.unwrap().data;
     let converted_bits = convert_bits(data[1..data.len()].to_vec(), 5, 8, false);
-    let decoded: String = converted_bits.iter().map( |&id| format!("{:02X?}", id)).collect();
+    let decoded: String = converted_bits.iter().map( |&c| format!("{:02X?}", c)).collect();
     
     Ok(decoded.to_lowercase())
 }
