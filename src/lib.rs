@@ -101,6 +101,43 @@ pub fn decode(bech_string: &str) -> Vec<usize> {
 }
 
 pub fn encode(hrp: &str, data: &str) -> Result<String, Error> {
+/*
+    Unsafe function. Doesn't check the validity of hrp and data strings.
+    */
+    let hrpvalres = hrp_valideh(hrp);
+    if !hrpvalres.result{
+        return Err(std::io::Error::new(ErrorKind::Other,format!("Error with HRP: {}",hrpvalres.reason)));
+    }
+    let checksum = create_checksum(hrp, data);
+    let dataint = data_to_int(data);
+    let mut combined: Vec<usize> = Vec::new();
+    let mut dataiter = dataint.iter();
+    let mut dataindex = dataiter.next(); // Note the iterator provides &usize return despite arraw being of usize elements.
+    while dataindex != None {
+        combined.push(*dataindex.unwrap());
+        dataindex = dataiter.next();
+    }
+    let mut checksum_iter = checksum.iter();
+    let mut checksumindex = checksum_iter.next();
+    while checksumindex != None {
+        combined.push(*checksumindex.unwrap());
+        checksumindex = checksum_iter.next();
+    }
+    let mut encoded_string = String::new();
+    encoded_string.push_str(hrp);
+    encoded_string.push('1');
+    
+    for i in combined {
+        let string_index = (i/8) as usize;
+        let holder_string = DATA_LUT[string_index];
+        encoded_string.push(holder_string.chars().nth(i - 8*string_index).unwrap());
+    }
+    Ok(encoded_string)
+}
+
+
+/*
+pub fn encode(hrp: &str, data: &str) -> Result<String, Error> {
 
     /*
     Unsafe function. Doesn't check the validity of hrp and data strings.
@@ -133,7 +170,7 @@ pub fn encode(hrp: &str, data: &str) -> Result<String, Error> {
     encoded_string.push('1');
     
     Ok(encoded_string)
-}
+}*/
 
 fn hrp_valideh(hrp: &str) -> ValidationResponse {
     let hrp_len = hrp.len();
