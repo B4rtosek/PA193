@@ -48,26 +48,17 @@ pub fn polymod(values: &Vec<usize>) -> usize {
 }
 
 pub fn verify_data_checksum(hrp: &str, mut data: Vec<usize>) -> bool {
-    println!("💀 Received {} as hrp and {:?} as data", hrp, data);
     let mut hrp = hrp_expand(hrp);
-    println!("💀 HRP expanded to: {:?}", &hrp);
     hrp.append(&mut data);
-    println!("💀 Sending {:?} to polymod", &hrp);
     let res = polymod(&hrp);
-    println!("💀 Result of the polymod is => {}", &res);
     res == BECH32M_CONST
 }
 
 pub fn verify_checksum(hrp: &str, data: &str) -> bool {
-    println!("💀 Received {} as hrp and {} as data", hrp, data);
     let mut hrp = hrp_expand(hrp);
-    println!("💀 HRP expanded to: {:?}", &hrp);
     let mut data = data_to_int(data);
-    println!("💀 Data to int looks like: {:?}", &data);
     hrp.append(&mut data);
-    println!("💀 Sending {:?} to polymod", &hrp);
     let res = polymod(&hrp);
-    println!("💀 Result of the polymod is => {}", &res);
     res == BECH32M_CONST
 }
 
@@ -99,6 +90,53 @@ pub fn hrp_expand(hrp: &str) -> Vec<usize> {
     }
 
     return hrpx;
+}
+
+fn convert_bits(data: Vec<usize>, from: usize, to: usize, pad: bool) -> Vec<usize> {
+    let mut result: Vec<usize> = Vec::new();
+
+    let mut acc = 0;
+    let mut bits = 0;
+    let max_v = (1 << to) - 1;
+    let max_acc = (1 << (from + to - 1)) - 1;
+
+    for c in data {
+        if c < 0 || (c >> from) > 0 {
+            //ERROR
+        }
+
+        acc = ((acc << from) | c) & max_acc;
+        bits += from;
+
+        while bits >= to {
+            bits -= to;
+            result.push((acc >> bits) & max_v);
+        }
+    }
+
+    if pad {
+        if bits > 0 {
+            result.push((acc << (to - bits)) & max_v);
+        }
+    } else if bits >= from || ((acc << (to - bits)) & max_v) > 0 {
+        //Error
+    }
+
+    return result;
+}
+
+pub fn decode_hex(bech_string: &str) -> Result<String, Error> {
+    let decode_result = decode(bech_string);
+
+    if decode_result.is_err() {
+        return Err(decode_result.err().unwrap());
+    }
+
+    let data = decode_result.unwrap().data;
+    let converted_bits = convert_bits(data[1..data.len()].to_vec(), 5, 8, false);
+    let decoded: String = converted_bits.iter().map( |&id| format!("{:02X?}", id)).collect();
+    
+    Ok(decoded.to_lowercase())
 }
 
 pub fn decode(bech_string: &str) -> Result<DecodedData, Error> {
@@ -532,6 +570,37 @@ mod tests {
             let decoded_data = decode_result.unwrap();
             assert_eq!(decoded_data.hrp, valid_result.1.hrp);
             assert_eq!(decoded_data.data, valid_result.1.data);
+        }
+    }
+
+    #[test]
+    fn decode_invalid() {
+        let invalid_results: [&str; 18] = [
+            " 1xj0phk", 
+            "\x7F1g6xzxy", 
+            "\x701vctc34",
+            "an84characterslonghumanreadablepartthatcontainsthetheexcludedcharactersbioandnumber11d6pts4", 
+            "qyrz8wqd2c9m", 
+            "y1b0jsk6g", 
+            "lt1igcx5c0", 
+            "in1muywd", 
+            "mm1crxm3i", 
+            "au1s5cgom", 
+            "M1VUXWEZ", 
+            "16plkw9", 
+            "1p2gdwpf",
+            "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqh2y7hd",
+            "tb1z0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqglt7rf",
+            "BC1S0XLXVLHEMJA6C4DQV22UAPCTQUPFHLXM9H8Z3K2E72Q4K9HCZ7VQ54WELL",
+            "bc1p38j9r5y49hruaue7wxjce0updqjuyyx0kh56v8s25huc6995vvpql3jow4",
+            "tb1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vq47Zagq"
+        ];
+        
+        for invalid_result in invalid_results {
+            let decode_result = decode(invalid_result);
+
+            assert_eq!(decode_result.is_ok(), false);
+            assert_eq!(decode_result.is_err(), true);
         }
     }
 }
