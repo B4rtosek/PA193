@@ -1,44 +1,33 @@
+use semproject::*;
 use std::process;
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, Write};
 
 pub fn ui() {
-  welcome();
   loop {
     question();
   }
 }
 
-fn again() { 
-    println!("Press \'Y\' to Yes");
-    println!("Press \'N\' to No");
-    println!("Your Choice: ");
-    let choice = io::stdin().lock().lines().next().unwrap().unwrap();
-    println!("---------------------------------");
-    if choice == "Y" || choice == "y"{
-        question();
-    } else if choice == "N" || choice == "n" {
-        quit();  
-    } else {
-        println!("Sorry, I don't get it.");
-        again();
-    }
+fn quit() {
+    process::exit(0);
+}
+
+fn delim() {
+    println!("--------------------------");
 }
 
 fn question() {
     println!("Press \'E\' to encode");
     println!("Press \'D\' to decode");
     println!("Press \'Q\' to quit");
-    println!("Your Choice: ");
+    print!("Your Choice: ");
+    let _ = io::stdout().flush();
     let choice = io::stdin().lock().lines().next().unwrap().unwrap();
-    println!("---------------------------------");
+    delim();
     if choice == "E" || choice == "e" {
-        encode();
-        println!("Yay! That was awesome ... let's do it one more time?");
-        again();
+        ui_encode();
     } else if choice == "D" || choice == "d" {
-        decode();
-        println!("Yay! That was awesome ... let's do it one more time?");
-        again();
+        ui_decode();
     } else if choice == "Q" || choice == "q" {
         quit();
     } else {
@@ -47,20 +36,23 @@ fn question() {
     }
 }
 
-fn quit() {
-    println!("See you soon!");
-    process::exit(0);
+fn ui_decode() {
+    println!("Decoding with Bech32m");
+    print!("Input: ");
+    let _ = io::stdout().flush();
+    let data = io::stdin().lock().lines().next().unwrap().unwrap();
+    let decoded = decode(data.as_str());
+    println!("Result: {:?}", decoded);
+    delim();
 }
 
-fn decode() {
-    println!("You chode decode");
-}
-
-fn encode() {
-    println!("You chode encode");
-}
-
-fn welcome() {
-    println!("Hello and Welcome to the very best Bech32m decoding tool out there!");
-    println!("Tell me, what is your wish ...");
+fn ui_encode() {
+    println!("Encoding with Bech32m");
+    print!("Input: ");
+    let _ = io::stdout().flush();
+    let data = io::stdin().lock().lines().next().unwrap().unwrap();
+    let hrp = "bc";
+    let encoded = encode(hrp, data.as_str());
+    println!("Result: {}", encoded.unwrap());
+    delim();
 }
