@@ -1,5 +1,10 @@
+use std::env;
 mod ui;
 
 fn main() {
-    ui::ui();
+    let args: Vec<String> = env::args().collect();
+    println!("{:?}", args);
+
+
+    ui::ui("stdin", "stdout");
 }
