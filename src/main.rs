@@ -18,6 +18,7 @@ enum OutputType {
     FILE,
 }
 
+#[derive(PartialEq)]
 enum Format {
     BASE64,
     HEX,
@@ -65,8 +66,8 @@ struct Cli {
 impl Default for Cli {
     fn default() -> Cli {
         Cli {
-            input_format: Format::BASE64,
-            output_format: Format::BASE64,
+            input_format: Format::HEX,
+            output_format: Format::HEX,
             input: InputType::STDIN,
             input_data: "".to_string(),
             output: OutputType::STDOUT,
@@ -91,10 +92,10 @@ fn help() {
     println!("  Output (default: stdout)");
     println!("    -o --output-file <file>            Selects output file");
     println!("");
-    println!("  Input Format (default: base64, allowed: base64, binary, hex)");
+    println!("  Input Format (default: hex, allowed: base64, binary, hex)");
     println!("    -f --input-format <format>         Selects input format");
     println!("");
-    println!("  Output Format (default: base64, allowed: base64, binary, hex)");
+    println!("  Output Format (default: hex, allowed: base64, binary, hex)");
     println!("    -a --output-format <format>        Selects output format");
     println!("");
     println!("  -h --help                            Print usage");
@@ -260,12 +261,16 @@ fn main() {
     let mut result: String = "".to_string();
 
     if settings.operation.unwrap() == Operation::DECODE {
-        let decoded_vec = decode(settings.input_data.as_str()).unwrap().data; 
-        for num in decoded_vec {
-            result.push_str(&num.to_string());
+
+        if settings.input_format == Format::HEX && settings.output_format == Format::HEX{
+            result = decode_hex(settings.input_data.as_str()).unwrap(); 
+        } else {
+            println!("TODO");
         }
+
     } else {
         // TODO result = encode("bc", settings.input_data.as_str()).unwrap();
+        println!("TODO");
     }
 
     if settings.output == OutputType::FILE {
