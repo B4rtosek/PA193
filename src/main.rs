@@ -122,7 +122,7 @@ fn main() {
     while i < args.len() {
         match args[i].as_str(){
             "-i" | "--input-file" => {
-                if loaded_args.input_file {
+                if loaded_args.input_file || loaded_args.input {
                     input_error();
                 } else {
                     loaded_args.input_file = true;
@@ -142,7 +142,7 @@ fn main() {
                 }
             },
             "-d" | "--input" => {
-                if loaded_args.input {
+                if loaded_args.input || loaded_args.input_file {
                     input_error();
                 } else {
                     loaded_args.input = true;
