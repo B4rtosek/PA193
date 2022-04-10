@@ -1,14 +1,18 @@
-use std::fs;
+use semproject::*;
 use std::env;
 use std::process;
+use std::fs::File;
 use std::path::Path;
+use std::io::{self, prelude::*, BufRead, Write};
 
+#[derive(PartialEq)]
 enum InputType {
     STDIN,
     DATA,
     FILE,
 }
 
+#[derive(PartialEq)]
 enum OutputType {
     STDOUT,
     FILE,
@@ -18,6 +22,12 @@ enum Format {
     BASE64,
     HEX,
     BINARY,
+}
+
+#[derive(PartialEq)]
+enum Operation {
+    ENCODE,
+    DECODE,
 }
 
 struct CliArgs {
@@ -45,7 +55,8 @@ struct Cli {
     input: InputType,
     input_data: String,
     output: OutputType,
-    output_path: Option<String>,
+    output_path: String,
+    operation: Option<Operation>,
 }
 
 impl Default for Cli {
@@ -55,7 +66,8 @@ impl Default for Cli {
             input: InputType::STDIN,
             input_data: "".to_string(),
             output: OutputType::STDOUT,
-            output_path: None,
+            output_path: "".to_string(),
+            operation: None,
         }
     }
 }
@@ -63,7 +75,8 @@ impl Default for Cli {
 fn help() {
     println!("Bech32m Coding nad Decoding Tool - Rustafarians");
     println!("");
-    println!("Usage: cargo run -- [options][paths...]");
+    println!("Usage: cargo run -- decode [options][paths...]");
+    println!("       cargo run -- encode [options][paths...]");
     println!("");
     println!("Options");
     println!("  Input (default: stdin)");
@@ -78,6 +91,7 @@ fn help() {
 }
 
 fn input_error() {
+    println!("Invalid use of arguments ...");
     help();
     process::exit(1);
 }
@@ -86,8 +100,24 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     let mut loaded_args = CliArgs { ..Default::default() };
     let mut settings = Cli { ..Default::default() };
+    
+    if args.len() < 2 {
+        input_error();
+    }
 
-    let mut i = 1;
+    match args[1].as_str() {
+        "decode" => {
+            settings.operation = Some(Operation::DECODE);
+        },
+        "encode" => {
+            settings.operation = Some(Operation::ENCODE);
+        }
+        _ => {
+            input_error();
+        }
+    }
+    
+    let mut i = 2;
 
     while i < args.len() {
         match args[i].as_str(){
@@ -104,7 +134,8 @@ fn main() {
                     if ! path.exists() {
                         input_error();
                     } else {
-                        settings.input_data = fs::read_to_string(path).unwrap();
+                        let mut file = File::open(path).expect("File not found");
+                        file.read_to_string(&mut settings.input_data).expect("Error while reading file");
                     }
                 } else {
                     input_error();
@@ -133,10 +164,11 @@ fn main() {
                 settings.output = OutputType::FILE;
                 i += 1;
                 if args.len() > i {
-                    settings.output_path = Some(args[i].to_string());
-                    if ! Path::new(settings.output_path.unwrap().as_str()).exists() {
+                    settings.output_path = args[i].to_string();
+                    // TODO Should I check if output file exists ... Now it just creates it
+                    /*if ! Path::new(settings.output_path.as_str()).exists() {
                         input_error();
-                    }
+                    }*/
                 } else {
                     input_error();
                 }
@@ -183,6 +215,28 @@ fn main() {
         i += 1;
     }
     
-    println!("{}", settings.input_data);
+    if settings.input == InputType::STDIN {
+        let _ = io::stdout().flush();
+        settings.input_data = io::stdin().lock().lines().next().unwrap().unwrap();
+    }
+
+    let mut result: String = "".to_string();
+
+    if settings.operation.unwrap() == Operation::DECODE {
+        let decoded_vec = decode(settings.input_data.as_str()).unwrap().data; 
+        for num in decoded_vec {
+            result.push_str(&num.to_string());
+        }
+    } else {
+        // TODO result = encode("bc", settings.input_data.as_str()).unwrap();
+    }
+
+    if settings.output == OutputType::FILE {
+        let path = Path::new(settings.output_path.as_str());
+        let mut f = File::create(path).expect("Unable to create file");
+        f.write_all(result.as_str().as_bytes()).expect("Unable to write data");
+    } else {
+        println!("{}", result.as_str());
+    }
     
 }
