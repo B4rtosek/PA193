@@ -34,7 +34,8 @@ struct CliArgs {
     input_file: bool,
     input: bool,
     output_file: bool,
-    format: bool,
+    input_format: bool,
+    output_format: bool,
     help: bool,
 }
 
@@ -44,14 +45,16 @@ impl Default for CliArgs {
             input_file: false,
             input: false,
             output_file: false,
-            format: false,
+            input_format: false,
+            output_format: false,
             help: false,
         }
     }
 }
 
 struct Cli {
-    format: Format,
+    input_format: Format,
+    output_format: Format,
     input: InputType,
     input_data: String,
     output: OutputType,
@@ -62,7 +65,8 @@ struct Cli {
 impl Default for Cli {
     fn default() -> Cli {
         Cli {
-            format: Format::BASE64,
+            input_format: Format::BASE64,
+            output_format: Format::BASE64,
             input: InputType::STDIN,
             input_data: "".to_string(),
             output: OutputType::STDOUT,
@@ -75,17 +79,24 @@ impl Default for Cli {
 fn help() {
     println!("Bech32m Coding nad Decoding Tool - Rustafarians");
     println!("");
-    println!("Usage: cargo run -- decode [options][paths...]");
-    println!("       cargo run -- encode [options][paths...]");
+    println!("Usage:");
+    println!("  cargo run -- decode [options][paths...]");
+    println!("  cargo run -- encode [options][paths...]");
     println!("");
-    println!("Options");
+    println!("Options:");
     println!("  Input (default: stdin)");
     println!("    -i --input-file <file>             Selects input file");
     println!("    -d --input <data>                  Inputs the provided data");
+    println!("");
     println!("  Output (default: stdout)");
     println!("    -o --output-file <file>            Selects output file");
-    println!("  Format (default: base64, allowed: base64, binary, hex)");
-    println!("    -f --format <format>               Selects input/output format");
+    println!("");
+    println!("  Input Format (default: base64, allowed: base64, binary, hex)");
+    println!("    -f --input-format <format>         Selects input format");
+    println!("");
+    println!("  Output Format (default: base64, allowed: base64, binary, hex)");
+    println!("    -a --output-format <format>        Selects output format");
+    println!("");
     println!("  -h --help                            Print usage");
 
 }
@@ -173,23 +184,23 @@ fn main() {
                     input_error();
                 }
             },
-            "-f" | "--format" => {
-                if loaded_args.format {
+            "-f" | "--input-format" => {
+                if loaded_args.input_format {
                     input_error();
                 } else {
-                    loaded_args.format = true;
+                    loaded_args.input_format = true;
                 }
                 i += 1;
                 if args.len() > i {
                     match args[i].as_str(){
                         "base64" => {
-                            settings.format = Format::BASE64;
+                            settings.input_format = Format::BASE64;
                         },
                         "hex" => {
-                            settings.format = Format::HEX;
+                            settings.input_format = Format::HEX;
                         }, 
                         "binary" => {
-                            settings.format = Format::BINARY;
+                            settings.input_format = Format::BINARY;
                         }, 
                         _ => {
                             input_error();
@@ -198,7 +209,33 @@ fn main() {
                 } else {
                     input_error();
                 }
-            }
+            },
+            "-a" | "--output-format" => {
+                if loaded_args.output_format {
+                    input_error();
+                } else {
+                    loaded_args.output_format = true;
+                }
+                i += 1;
+                if args.len() > i {
+                    match args[i].as_str(){
+                        "base64" => {
+                            settings.output_format = Format::BASE64;
+                        },
+                        "hex" => {
+                            settings.output_format = Format::HEX;
+                        }, 
+                        "binary" => {
+                            settings.output_format = Format::BINARY;
+                        }, 
+                        _ => {
+                            input_error();
+                        }
+                    }
+                } else {
+                    input_error();
+                }
+            },
             "-h" | "--help" => {
                 if loaded_args.help {
                     input_error();
