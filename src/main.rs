@@ -178,6 +178,7 @@ fn main() {
                 if args.len() > i {
                     settings.output_path = args[i].to_string();
                     // TODO Should I check if output file exists ... Now it just creates it
+                    // NO. - PrisonMike
                     /*if ! Path::new(settings.output_path.as_str()).exists() {
                         input_error();
                     }*/
