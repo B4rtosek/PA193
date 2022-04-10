@@ -23,6 +23,7 @@ enum Format {
     BASE64,
     HEX,
     BINARY,
+    // BECH32M
 }
 
 #[derive(PartialEq)]
@@ -92,10 +93,10 @@ fn help() {
     println!("  Output (default: stdout)");
     println!("    -o --output-file <file>            Selects output file");
     println!("");
-    println!("  Input Format (default: hex, allowed: base64, binary, hex)");
+    println!("  Input Format (default: hex, allowed: base64, binary, hex for encoding, bech32m for decoding)");
     println!("    -f --input-format <format>         Selects input format");
     println!("");
-    println!("  Output Format (default: hex, allowed: base64, binary, hex)");
+    println!("  Output Format (default: hex, allowed: base64, binary, hex for decoding, bech32m for encoding)");
     println!("    -a --output-format <format>        Selects output format");
     println!("");
     println!("  -h --help                            Print usage");
