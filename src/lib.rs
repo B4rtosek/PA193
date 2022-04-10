@@ -1,12 +1,13 @@
 use std::{io::Error, io::ErrorKind};
+use base64;
 
 const BECH32M_CONST: usize = 0x2bc830a3;
 const DATA_LUT: [&'static str; 4] = ["qpzry9x8", "gf2tvdw0", "s3jn54kh", "ce6mua7l"];
 const CHARSET: &str = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
 
 pub struct ValidationResponse {
-    result: bool,
-    reason: String,
+    pub result: bool,
+    pub reason: String,
 }
 
 pub struct DecodedData {
@@ -92,8 +93,8 @@ pub fn hrp_expand(hrp: &str) -> Vec<usize> {
     return hrpx;
 }
 
-fn convert_bits(data: Vec<usize>, from: usize, to: usize, pad: bool) -> Result<Vec<usize>, Error> {
-    let mut result: Vec<usize> = Vec::new();
+fn convert_bits(data: Vec<usize>, from: usize, to: usize, pad: bool) -> Result<Vec<u8>, Error> {
+    let mut result: Vec<u8> = Vec::new();
 
     let mut acc = 0;
     let mut bits = 0;
@@ -113,13 +114,13 @@ fn convert_bits(data: Vec<usize>, from: usize, to: usize, pad: bool) -> Result<V
 
         while bits >= to {
             bits -= to;
-            result.push((acc >> bits) & max_v);
+            result.push(((acc >> bits) & max_v) as u8);
         }
     }
 
     if pad {
         if bits > 0 {
-            result.push((acc << (to - bits)) & max_v);
+            result.push(((acc << (to - bits)) & max_v) as u8);
         }
     } else if bits >= from || ((acc << (to - bits)) & max_v) > 0 {
         return Err(std::io::Error::new(
@@ -152,6 +153,49 @@ pub fn decode_hex(bech_string: &str) -> Result<String, Error> {
         .map(|c| format!("{:02x?}", c))
         .collect();
     Ok(decoded.to_lowercase())
+}
+
+pub fn decode_bin(bech_string: &str) -> Result<String, Error> {
+    let decode_result = decode(bech_string);
+
+    if decode_result.is_err() {
+        return Err(decode_result.err().unwrap());
+    }
+
+    let data = decode_result.unwrap().data;
+    let convert_bits = convert_bits(data.to_vec(), 5, 8, false);
+
+    if convert_bits.is_err() {
+        return Err(convert_bits.err().unwrap());
+    }
+
+    let converted_bits = convert_bits.unwrap();
+
+    let decoded: String = converted_bits
+        .iter()
+        .map(|c| format!("{:b}", c))
+        .collect();
+    Ok(decoded)
+}
+
+pub fn decode_base64(bech_string: &str) -> Result<String, Error> {
+    let decode_result = decode(bech_string);
+
+    if decode_result.is_err() {
+        return Err(decode_result.err().unwrap());
+    }
+
+    let data = decode_result.unwrap().data;
+    let convert_bits = convert_bits(data.to_vec(), 5, 8, false);
+
+    if convert_bits.is_err() {
+        return Err(convert_bits.err().unwrap());
+    }
+
+    let converted_bits = convert_bits.unwrap();
+
+    let decoded: String = base64::encode(converted_bits);
+    Ok(decoded)
 }
 
 pub fn decode(bech_string: &str) -> Result<DecodedData, Error> {
@@ -342,8 +386,10 @@ pub fn valideh(teststr: &str) -> ValidationResponse {
             // dbg!(&hrp);
             // dbg!(&datapart);
             println!(
-                "🔛 {} is split into {} as hrp and {} as data",
-                teststr, hrp, datapart
+                // "🔛 {} is split into {} as hrp and {} as data",
+                "HUMAN READABLE PART => {}",
+                // teststr, hrp, datapart
+                &hrp
             );
 
             let hrp_res = hrp_valideh(hrp);

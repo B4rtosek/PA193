@@ -23,7 +23,7 @@ enum Format {
     BASE64,
     HEX,
     BINARY,
-    // BECH32M
+    BECH32M
 }
 
 #[derive(PartialEq)]
@@ -263,11 +263,17 @@ fn main() {
     let mut result: String = "".to_string();
 
     if settings.operation.unwrap() == Operation::DECODE {
-
-        if settings.input_format == Format::HEX && settings.output_format == Format::HEX{
-            result = decode_hex(settings.input_data.as_str()).unwrap(); 
+        let inp_validation_result = valideh(settings.input_data.as_str());
+        if inp_validation_result.result {
+            match settings.output_format {
+                Format::HEX => { result = decode_hex(settings.input_data.as_str()).unwrap() },
+                Format::BASE64 => { result = decode_base64(settings.input_data.as_str()).unwrap() },
+                Format::BINARY => { result = decode_bin(settings.input_data.as_str()).unwrap() },
+                Format::BECH32M => { println!("Wrong output format"); input_error(); }
+            };
         } else {
-            println!("TODO");
+            println!("{}", inp_validation_result.reason);
+            input_error();
         }
 
     } else {
