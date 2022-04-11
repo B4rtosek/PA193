@@ -288,7 +288,16 @@ pub fn encode(hrp: &str, data: Vec<usize>) -> Result<String, Error> {
     encoded_string.push_str("1");
 
     for c in combined {
-        encoded_string.push(CHARSET.chars().nth(c).unwrap());
+        let charset_char = CHARSET.chars().nth(c);
+
+        if charset_char == None {
+            return Err(std::io::Error::new(
+                ErrorKind::Other,
+                format!("Invalid character: {}", c),
+            ));
+        }
+
+        encoded_string.push(charset_char.unwrap());
     }
 
     Ok(encoded_string)
