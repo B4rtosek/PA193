@@ -172,7 +172,10 @@ pub fn decode_bin(bech_string: &str) -> Result<String, Error> {
 
     let converted_bits = convert_bits.unwrap();
 
-    let decoded: String = converted_bits.iter().map(|c| format!("{:b}", c)).collect();
+    let decoded: String = converted_bits
+        .iter()
+        .map(|c| format!("{:08b}", c))
+        .collect();
     Ok(decoded)
 }
 
@@ -300,6 +303,15 @@ fn parse_hex(s: &str) -> Result<Vec<usize>, ParseIntError> {
         .collect()
 }
 
+// SOURCE: https://stackoverflow.com/questions/63876919/rust-convert-from-a-binary-string-representation-to-ascii-string
+// We have used this, because other languages support bin to bytes functions as part of standard libs
+pub fn decode_binary(s: &str) -> Result<Vec<usize>, ParseIntError> {
+    (0..s.len())
+        .step_by(8)
+        .map(|i| usize::from_str_radix(&s[i..i + 8], 2))
+        .collect()
+}
+
 pub fn encode_hex(hrp: &str, data: &str) -> Result<String, Error> {
     let parsed_hex = parse_hex(data);
 
@@ -346,6 +358,43 @@ pub fn encode_base64(hrp: &str, data: &str) -> Result<String, Error> {
     }
 
     let convert_bits = convert_bits(bytes_usize, 8, 5, true);
+
+    if convert_bits.is_err() {
+        return Err(convert_bits.err().unwrap());
+    }
+
+    let converted_bits = convert_bits.unwrap();
+    let mut converted_bits_usize: Vec<usize> = Vec::new();
+    for bit in converted_bits {
+        converted_bits_usize.push((bit as char) as usize);
+    }
+    let encode_result = encode(hrp, converted_bits_usize);
+
+    if encode_result.is_err() {
+        return Err(encode_result.err().unwrap());
+    }
+
+    Ok(encode_result.unwrap().to_owned())
+}
+
+pub fn encode_bin(hrp: &str, data: &str) -> Result<String, Error> {
+    if data.chars().count() % 8 != 0 {
+        return Err(std::io::Error::new(
+            ErrorKind::Other,
+            format!("ERROR: Wrong input binary string!"),
+        ));
+    }
+
+    let parsed_bin = decode_binary(data);
+
+    if parsed_bin.is_err() {
+        return Err(std::io::Error::new(
+            ErrorKind::Other,
+            format!("ERROR: Wrong input binary string!"),
+        ));
+    }
+
+    let convert_bits = convert_bits(parsed_bin.unwrap(), 8, 5, true);
 
     if convert_bits.is_err() {
         return Err(convert_bits.err().unwrap());
