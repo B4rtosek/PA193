@@ -1,9 +1,9 @@
 use semproject::*;
 use std::env;
-use std::process;
 use std::fs::File;
-use std::path::Path;
 use std::io::{self, prelude::*, BufRead, Write};
+use std::path::Path;
+use std::process;
 
 #[derive(PartialEq)]
 enum InputType {
@@ -22,7 +22,7 @@ enum OutputType {
 enum Format {
     BASE64,
     HEX,
-    BINARY
+    BINARY,
 }
 
 #[derive(PartialEq)]
@@ -104,7 +104,6 @@ fn help() {
     println!("  Hrp value (encode only, default: default_hrp");
     println!("    -r --hrp                           Sets hrp to use on encoding");
     println!("  -h --help                            Print usage");
-
 }
 
 fn input_error() {
@@ -115,9 +114,12 @@ fn input_error() {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let mut loaded_args = CliArgs { ..Default::default() };
-    let mut settings = Cli { ..Default::default() };
-    
+    let mut loaded_args = CliArgs {
+        ..Default::default()
+    };
+    let mut settings = Cli {
+        ..Default::default()
+    };
     if args.len() < 2 {
         input_error();
     }
@@ -125,7 +127,7 @@ fn main() {
     match args[1].as_str() {
         "decode" => {
             settings.operation = Some(Operation::DECODE);
-        },
+        }
         "encode" => {
             settings.operation = Some(Operation::ENCODE);
         }
@@ -133,11 +135,10 @@ fn main() {
             input_error();
         }
     }
-    
     let mut i = 2;
 
     while i < args.len() {
-        match args[i].as_str(){
+        match args[i].as_str() {
             "-i" | "--input-file" => {
                 if loaded_args.input_file || loaded_args.input {
                     input_error();
@@ -148,16 +149,17 @@ fn main() {
                 i += 1;
                 if args.len() > i {
                     let path = Path::new(args[i].as_str());
-                    if ! path.exists() {
+                    if !path.exists() {
                         input_error();
                     } else {
                         let mut file = File::open(path).expect("File not found");
-                        file.read_to_string(&mut settings.input_data).expect("Error while reading file");
+                        file.read_to_string(&mut settings.input_data)
+                            .expect("Error while reading file");
                     }
                 } else {
                     input_error();
                 }
-            },
+            }
             "-d" | "--input" => {
                 if loaded_args.input || loaded_args.input_file {
                     input_error();
@@ -171,7 +173,7 @@ fn main() {
                 } else {
                     input_error();
                 }
-            },
+            }
             "-o" | "--output-file" => {
                 if loaded_args.output_file {
                     input_error();
@@ -190,7 +192,7 @@ fn main() {
                 } else {
                     input_error();
                 }
-            },
+            }
             "-f" | "--input-format" => {
                 if loaded_args.input_format {
                     input_error();
@@ -199,16 +201,16 @@ fn main() {
                 }
                 i += 1;
                 if args.len() > i {
-                    match args[i].as_str(){
+                    match args[i].as_str() {
                         "base64" => {
                             settings.input_format = Format::BASE64;
-                        },
+                        }
                         "hex" => {
                             settings.input_format = Format::HEX;
-                        }, 
+                        }
                         "binary" => {
                             settings.input_format = Format::BINARY;
-                        }, 
+                        }
                         _ => {
                             input_error();
                         }
@@ -216,7 +218,7 @@ fn main() {
                 } else {
                     input_error();
                 }
-            },
+            }
             "-a" | "--output-format" => {
                 if loaded_args.output_format {
                     input_error();
@@ -225,16 +227,16 @@ fn main() {
                 }
                 i += 1;
                 if args.len() > i {
-                    match args[i].as_str(){
+                    match args[i].as_str() {
                         "base64" => {
                             settings.output_format = Format::BASE64;
-                        },
+                        }
                         "hex" => {
                             settings.output_format = Format::HEX;
-                        }, 
+                        }
                         "binary" => {
                             settings.output_format = Format::BINARY;
-                        }, 
+                        }
                         _ => {
                             input_error();
                         }
@@ -242,7 +244,7 @@ fn main() {
                 } else {
                     input_error();
                 }
-            },
+            }
             "-h" | "--help" => {
                 if loaded_args.help {
                     input_error();
@@ -251,7 +253,7 @@ fn main() {
                 }
                 help();
                 process::exit(0);
-            },
+            }
             "-r" | "--hrp" => {
                 if settings.operation == Some(Operation::ENCODE) && loaded_args.hrp == false {
                     loaded_args.hrp = true;
@@ -264,14 +266,13 @@ fn main() {
                 } else {
                     input_error();
                 }
-            },
+            }
             _ => {
                 input_error();
             }
         }
         i += 1;
     }
-    
     if settings.input == InputType::STDIN {
         let _ = io::stdout().flush();
         settings.input_data = io::stdin().lock().lines().next().unwrap().unwrap();
@@ -283,15 +284,14 @@ fn main() {
         let inp_validation_result = valideh(settings.input_data.as_str());
         if inp_validation_result.result {
             match settings.output_format {
-                Format::HEX => { result = decode_hex(settings.input_data.as_str()).unwrap() },
-                Format::BASE64 => { result = decode_base64(settings.input_data.as_str()).unwrap() },
-                Format::BINARY => { result = decode_bin(settings.input_data.as_str()).unwrap() }
+                Format::HEX => result = decode_hex(settings.input_data.as_str()).unwrap(),
+                Format::BASE64 => result = decode_base64(settings.input_data.as_str()).unwrap(),
+                Format::BINARY => result = decode_bin(settings.input_data.as_str()).unwrap(),
             };
         } else {
             println!("{}", inp_validation_result.reason);
             input_error();
         }
-
     } else {
         // TODO you can use hrp as settings.hrp
         // TODO result = encode("bc", settings.input_data.as_str()).unwrap();
@@ -301,9 +301,9 @@ fn main() {
     if settings.output == OutputType::FILE {
         let path = Path::new(settings.output_path.as_str());
         let mut f = File::create(path).expect("Unable to create file");
-        f.write_all(result.as_str().as_bytes()).expect("Unable to write data");
+        f.write_all(result.as_str().as_bytes())
+            .expect("Unable to write data");
     } else {
         println!("{}", result.as_str());
     }
-    
 }

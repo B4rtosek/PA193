@@ -1,5 +1,5 @@
-use std::{io::Error, io::ErrorKind};
 use base64;
+use std::{io::Error, io::ErrorKind};
 
 const BECH32M_CONST: usize = 0x2bc830a3;
 const DATA_LUT: [&'static str; 4] = ["qpzry9x8", "gf2tvdw0", "s3jn54kh", "ce6mua7l"];
@@ -171,10 +171,7 @@ pub fn decode_bin(bech_string: &str) -> Result<String, Error> {
 
     let converted_bits = convert_bits.unwrap();
 
-    let decoded: String = converted_bits
-        .iter()
-        .map(|c| format!("{:b}", c))
-        .collect();
+    let decoded: String = converted_bits.iter().map(|c| format!("{:b}", c)).collect();
     Ok(decoded)
 }
 
@@ -283,7 +280,6 @@ pub fn encode(hrp: &str, data: Vec<usize>) -> Result<String, Error> {
 
     dbg!(checksum.clone());
     combined.append(&mut checksum);
-    
     let mut encoded_string = String::new();
     encoded_string.push_str(hrp);
     encoded_string.push_str("1");
