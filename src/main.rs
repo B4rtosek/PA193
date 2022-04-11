@@ -1,10 +1,10 @@
 use bech32m::*;
 use std::env;
 use std::fs::File;
+use std::io::Error;
 use std::io::{self, prelude::*, BufRead, Write};
 use std::path::Path;
 use std::process;
-use std::{io::Error};
 
 #[derive(PartialEq)]
 enum InputType {

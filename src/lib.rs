@@ -321,11 +321,9 @@ pub fn encode_hex(hrp: &str, data: &str) -> Result<String, Error> {
 
     let converted_bits = convert_bits.unwrap();
     let mut converted_bits_usize: Vec<usize> = Vec::new();
-    
     for bit in converted_bits {
         converted_bits_usize.push((bit as char) as usize);
     }
-    
     let encode_result = encode(hrp, converted_bits_usize);
 
     if encode_result.is_err() {
