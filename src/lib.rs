@@ -1,5 +1,5 @@
 use base64;
-use std::{io::Error, io::ErrorKind};
+use std::{io::Error, io::ErrorKind, num::ParseIntError};
 
 const BECH32M_CONST: usize = 0x2bc830a3;
 const DATA_LUT: [&'static str; 4] = ["qpzry9x8", "gf2tvdw0", "s3jn54kh", "ce6mua7l"];
@@ -291,29 +291,26 @@ pub fn encode(hrp: &str, data: Vec<usize>) -> Result<String, Error> {
     Ok(encoded_string)
 }
 
-fn parse_hex(hex_asm: &str) -> Vec<usize> {
-    let mut hex_bytes = hex_asm
-        .as_bytes()
-        .iter()
-        .filter_map(|b| match b {
-            b'0'..=b'9' => Some(b - b'0'),
-            b'a'..=b'f' => Some(b - b'a' + 10),
-            b'A'..=b'F' => Some(b - b'A' + 10),
-            _ => None,
-        })
-        .fuse();
-
-    let mut bytes = Vec::new();
-    while let (Some(h), Some(l)) = (hex_bytes.next(), hex_bytes.next()) {
-        bytes.push((h << 4 | l) as usize)
-    }
-    bytes
+// SOURCE: https://stackoverflow.com/questions/52987181/how-can-i-convert-a-hex-string-to-a-u8-slice
+// We have used this, because other languages support hex to bytes functions as part of standard libs
+fn parse_hex(s: &str) -> Result<Vec<usize>, ParseIntError> {
+    (0..s.len())
+        .step_by(2)
+        .map(|i| usize::from_str_radix(&s[i..i + 2], 16))
+        .collect()
 }
 
 pub fn encode_hex(hrp: &str, data: &str) -> Result<String, Error> {
     let parsed_hex = parse_hex(data);
 
-    let convert_bits = convert_bits(parsed_hex, 8, 5, true);
+    if parsed_hex.is_err() {
+        return Err(std::io::Error::new(
+            ErrorKind::Other,
+            format!("ERROR: Wrong input hex string!"),
+        ));
+    }
+
+    let convert_bits = convert_bits(parsed_hex.unwrap(), 8, 5, true);
 
     if convert_bits.is_err() {
         return Err(convert_bits.err().unwrap());
