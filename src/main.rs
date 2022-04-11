@@ -298,7 +298,7 @@ fn main() {
     } else {
         match settings.input_format {
             Format::HEX => result = encode_hex(&*settings.hrp, settings.input_data.as_str()),
-            Format::BASE64 => result = encode_hex(&*settings.hrp, settings.input_data.as_str()),
+            Format::BASE64 => result = encode_base64(&*settings.hrp, settings.input_data.as_str()),
             Format::BINARY => result = encode_hex(&*settings.hrp, settings.input_data.as_str()),
         };
     }

@@ -330,6 +330,41 @@ pub fn encode_hex(hrp: &str, data: &str) -> Result<String, Error> {
     Ok(encode_result.unwrap().to_owned())
 }
 
+pub fn encode_base64(hrp: &str, data: &str) -> Result<String, Error> {
+    let parsed_base64 = base64::decode(data);
+
+    if parsed_base64.is_err() {
+        return Err(std::io::Error::new(
+            ErrorKind::Other,
+            format!("ERROR: Wrong input base64 string!"),
+        ));
+    }
+
+    let mut bytes_usize: Vec<usize> = Vec::new();
+    for bit in parsed_base64.unwrap() {
+        bytes_usize.push((bit as char) as usize);
+    }
+
+    let convert_bits = convert_bits(bytes_usize, 8, 5, true);
+
+    if convert_bits.is_err() {
+        return Err(convert_bits.err().unwrap());
+    }
+
+    let converted_bits = convert_bits.unwrap();
+    let mut converted_bits_usize: Vec<usize> = Vec::new();
+    for bit in converted_bits {
+        converted_bits_usize.push((bit as char) as usize);
+    }
+    let encode_result = encode(hrp, converted_bits_usize);
+
+    if encode_result.is_err() {
+        return Err(encode_result.err().unwrap());
+    }
+
+    Ok(encode_result.unwrap().to_owned())
+}
+
 fn hrp_valideh(hrp: &str) -> ValidationResponse {
     let hrp_len = hrp.len();
 
