@@ -1,5 +1,5 @@
 [package]
-name = "semproject"
+name = "bech32m"
 version = "0.1.0"
 edition = "2021"
 

@@ -1,4 +1,4 @@
-use semproject::*;
+use bech32m::*;
 use std::env;
 use std::fs::File;
 use std::io::{self, prelude::*, BufRead, Write};
