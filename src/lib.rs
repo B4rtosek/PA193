@@ -136,6 +136,7 @@ pub fn decode_hex(bech_string: &str) -> Result<String, Error> {
     let decode_result = decode(bech_string);
 
     if decode_result.is_err() {
+        dbg!("dasda");
         return Err(decode_result.err().unwrap());
     }
 
@@ -278,7 +279,6 @@ pub fn encode(hrp: &str, data: Vec<usize>) -> Result<String, Error> {
 
     let mut combined: Vec<usize> = data;
 
-    dbg!(checksum.clone());
     combined.append(&mut checksum);
     let mut encoded_string = String::new();
     encoded_string.push_str(hrp);
@@ -289,6 +289,50 @@ pub fn encode(hrp: &str, data: Vec<usize>) -> Result<String, Error> {
     }
 
     Ok(encoded_string)
+}
+
+fn parse_hex(hex_asm: &str) -> Vec<usize> {
+    let mut hex_bytes = hex_asm
+        .as_bytes()
+        .iter()
+        .filter_map(|b| match b {
+            b'0'..=b'9' => Some(b - b'0'),
+            b'a'..=b'f' => Some(b - b'a' + 10),
+            b'A'..=b'F' => Some(b - b'A' + 10),
+            _ => None,
+        })
+        .fuse();
+
+    let mut bytes = Vec::new();
+    while let (Some(h), Some(l)) = (hex_bytes.next(), hex_bytes.next()) {
+        bytes.push((h << 4 | l) as usize)
+    }
+    bytes
+}
+
+pub fn encode_hex(hrp: &str, data: &str) -> Result<String, Error> {
+    let parsed_hex = parse_hex(data);
+
+    let convert_bits = convert_bits(parsed_hex, 8, 5, true);
+
+    if convert_bits.is_err() {
+        return Err(convert_bits.err().unwrap());
+    }
+
+    let converted_bits = convert_bits.unwrap();
+    let mut converted_bits_usize: Vec<usize> = Vec::new();
+    
+    for bit in converted_bits {
+        converted_bits_usize.push((bit as char) as usize);
+    }
+    
+    let encode_result = encode(hrp, converted_bits_usize);
+
+    if encode_result.is_err() {
+        return Err(encode_result.err().unwrap());
+    }
+
+    Ok(encode_result.unwrap().to_owned())
 }
 
 fn hrp_valideh(hrp: &str) -> ValidationResponse {

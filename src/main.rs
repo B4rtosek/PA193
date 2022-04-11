@@ -4,6 +4,7 @@ use std::fs::File;
 use std::io::{self, prelude::*, BufRead, Write};
 use std::path::Path;
 use std::process;
+use std::{io::Error};
 
 #[derive(PartialEq)]
 enum InputType {
@@ -191,11 +192,6 @@ fn main() {
                 i += 1;
                 if args.len() > i {
                     settings.output_path = args[i].to_string();
-                    // TODO Should I check if output file exists ... Now it just creates it
-                    // NO. - PrisonMike
-                    /*if ! Path::new(settings.output_path.as_str()).exists() {
-                        input_error();
-                    }*/
                 } else {
                     input_error();
                 }
@@ -285,32 +281,41 @@ fn main() {
         settings.input_data = io::stdin().lock().lines().next().unwrap().unwrap();
     }
 
-    let mut result: String = "".to_string();
+    let result: Result<String, Error>;
 
     if settings.operation.unwrap() == Operation::DECODE {
         let inp_validation_result = valideh(settings.input_data.as_str());
         if inp_validation_result.result {
             match settings.output_format {
-                Format::HEX => result = decode_hex(settings.input_data.as_str()).unwrap(),
-                Format::BASE64 => result = decode_base64(settings.input_data.as_str()).unwrap(),
-                Format::BINARY => result = decode_bin(settings.input_data.as_str()).unwrap(),
+                Format::HEX => result = decode_hex(settings.input_data.as_str()),
+                Format::BASE64 => result = decode_base64(settings.input_data.as_str()),
+                Format::BINARY => result = decode_bin(settings.input_data.as_str()),
             };
         } else {
             println!("{}", inp_validation_result.reason);
-            input_error();
+            process::exit(1);
         }
     } else {
-        // TODO you can use hrp as settings.hrp
-        // TODO result = encode("bc", settings.input_data.as_str()).unwrap();
-        println!("TODO");
+        match settings.input_format {
+            Format::HEX => result = encode_hex(&*settings.hrp, settings.input_data.as_str()),
+            Format::BASE64 => result = encode_hex(&*settings.hrp, settings.input_data.as_str()),
+            Format::BINARY => result = encode_hex(&*settings.hrp, settings.input_data.as_str()),
+        };
     }
 
-    if settings.output == OutputType::FILE {
-        let path = Path::new(settings.output_path.as_str());
-        let mut f = File::create(path).expect("Unable to create file");
-        f.write_all(result.as_str().as_bytes())
-            .expect("Unable to write data");
+    if result.is_err() {
+        println!("{}", result.err().unwrap());
+        process::exit(1);
     } else {
-        println!("{}", result.as_str());
+        let result_string = result.unwrap();
+
+        if settings.output == OutputType::FILE {
+            let path = Path::new(settings.output_path.as_str());
+            let mut f = File::create(path).expect("Unable to create file");
+            f.write_all(result_string.as_str().as_bytes())
+                .expect("Unable to write data");
+        } else {
+            println!("{}", result_string.as_str());
+        }
     }
 }
