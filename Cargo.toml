@@ -1,7 +1,9 @@
 [package]
 name = "bech32m"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
+description = "base32m encoding and decoding tool"
+license = "GNU GPL v.3"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
