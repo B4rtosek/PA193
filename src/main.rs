@@ -34,6 +34,7 @@ enum Operation {
 
 struct CliArgs {
     input_file: bool,
+    hrp: bool,
     input: bool,
     output_file: bool,
     input_format: bool,
@@ -45,6 +46,7 @@ impl Default for CliArgs {
     fn default() -> CliArgs {
         CliArgs {
             input_file: false,
+            hrp: false,
             input: false,
             output_file: false,
             input_format: false,
@@ -62,6 +64,7 @@ struct Cli {
     output: OutputType,
     output_path: String,
     operation: Option<Operation>,
+    hrp: String,
 }
 
 impl Default for Cli {
@@ -74,6 +77,7 @@ impl Default for Cli {
             output: OutputType::STDOUT,
             output_path: "".to_string(),
             operation: None,
+            hrp: "default_hrp",
         }
     }
 }
@@ -98,7 +102,8 @@ fn help() {
     println!("");
     println!("  Output Format (default: hex, allowed: base64, binary, hex for decoding, bech32m for encoding)");
     println!("    -a --output-format <format>        Selects output format");
-    println!("");
+    println!("  Hrp value (encode only, default: default_hrp");
+    println!("    -r --hrp                           Sets hrp to use on encoding");
     println!("  -h --help                            Print usage");
 
 }
@@ -248,6 +253,19 @@ fn main() {
                 help();
                 process::exit(0);
             },
+            "-r" | "--hrp" => {
+                if settings.operation == Operation::ENCODE && loaded_args.hrp == false {
+                    loaded_args.hrp = true;
+                    i += 1;
+                    if args.len() > i {
+                        settings.hrp = args[i].to_string();
+                    } else {
+                        input_error();
+                    }
+                } else {
+                    input_error();
+                }
+            },
             _ => {
                 input_error();
             }
@@ -277,6 +295,7 @@ fn main() {
         }
 
     } else {
+        // TODO you can use hrp as settings.hrp
         // TODO result = encode("bc", settings.input_data.as_str()).unwrap();
         println!("TODO");
     }
