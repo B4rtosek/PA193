@@ -22,8 +22,7 @@ enum OutputType {
 enum Format {
     BASE64,
     HEX,
-    BINARY,
-    BECH32M
+    BINARY
 }
 
 #[derive(PartialEq)]
@@ -77,7 +76,7 @@ impl Default for Cli {
             output: OutputType::STDOUT,
             output_path: "".to_string(),
             operation: None,
-            hrp: "default_hrp",
+            hrp: "rustafarian".to_owned(),
         }
     }
 }
@@ -254,7 +253,7 @@ fn main() {
                 process::exit(0);
             },
             "-r" | "--hrp" => {
-                if settings.operation == Operation::ENCODE && loaded_args.hrp == false {
+                if settings.operation == Some(Operation::ENCODE) && loaded_args.hrp == false {
                     loaded_args.hrp = true;
                     i += 1;
                     if args.len() > i {
@@ -286,8 +285,7 @@ fn main() {
             match settings.output_format {
                 Format::HEX => { result = decode_hex(settings.input_data.as_str()).unwrap() },
                 Format::BASE64 => { result = decode_base64(settings.input_data.as_str()).unwrap() },
-                Format::BINARY => { result = decode_bin(settings.input_data.as_str()).unwrap() },
-                Format::BECH32M => { println!("Wrong output format"); input_error(); }
+                Format::BINARY => { result = decode_bin(settings.input_data.as_str()).unwrap() }
             };
         } else {
             println!("{}", inp_validation_result.reason);

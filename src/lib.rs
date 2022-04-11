@@ -383,15 +383,6 @@ pub fn valideh(teststr: &str) -> ValidationResponse {
             hrp = &teststr[..separator];
             datapart = &teststr[separator + 1..];
 
-            // dbg!(&hrp);
-            // dbg!(&datapart);
-            println!(
-                // "🔛 {} is split into {} as hrp and {} as data",
-                "HUMAN READABLE PART => {}",
-                // teststr, hrp, datapart
-                &hrp
-            );
-
             let hrp_res = hrp_valideh(hrp);
             if hrp_res.result == false {
                 return hrp_res;
