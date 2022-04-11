@@ -81,12 +81,19 @@ impl Default for Cli {
     }
 }
 
+fn get_binary_name() -> Option<String> {
+    std::env::current_exe()
+        .ok()
+        .and_then(|pb| pb.file_name().map(|s| s.to_os_string()))
+        .and_then(|s| s.into_string().ok())
+}
+
 fn help() {
     println!("Bech32m Coding nad Decoding Tool - Rustafarians");
     println!("");
     println!("Usage:");
-    println!("  cargo run -- decode [options][paths...]");
-    println!("  cargo run -- encode [options][paths...]");
+    println!("{} decode [options][paths...]", get_binary_name().unwrap());
+    println!("{} encode [options][paths...]", get_binary_name().unwrap());
     println!("");
     println!("Options:");
     println!("  Input (default: stdin)");
