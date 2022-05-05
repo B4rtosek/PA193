@@ -322,6 +322,12 @@ pub fn decode_binary(s: &str) -> Result<Vec<usize>, ParseIntError> {
 }
 
 pub fn encode_hex(hrp: &str, data: &str) -> Result<String, Error> {
+    if data.len() % 2 == 1 {
+        return Err(std::io::Error::new(
+            ErrorKind::Other,"ERROR: Input hex string has odd number of characters!",
+        ));
+    }
+
     let parsed_hex = parse_hex(data);
 
     if parsed_hex.is_err() {
