@@ -301,6 +301,13 @@ fn main() {
             Format::BASE64 => result = encode_base64(&*settings.hrp, settings.input_data.as_str()),
             Format::BINARY => result = encode_bin(&*settings.hrp, settings.input_data.as_str()),
         };
+
+        if !result.is_err()  {
+            let inp_validation_result = valideh(&result.as_ref().unwrap());
+            if !inp_validation_result.result {
+                process::exit(1);
+            }
+        }
     }
 
     if result.is_err() {
