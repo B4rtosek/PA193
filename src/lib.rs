@@ -533,24 +533,7 @@ pub fn valideh(teststr: &str) -> ValidationResponse {
             } else {
                 let datachars = datapart.chars();
                 for i in datachars {
-                    if i.is_ascii_alphanumeric() && i != '1' && i != 'b' && i != 'i' && i != 'o' {
-                        /*
-                        Data character validity testing ends here. The tests to compute and test the checksums should follow.
-                        */
-                        let _res;
-                        if verify_checksum(hrp, datapart) {
-                            response = "VALID".to_owned();
-                            _res = true;
-                        } else {
-                            response = "INVALID: CHECKSUM VALIDATION FAILED".to_owned();
-                            _res = false;
-                        }
-
-                        return ValidationResponse {
-                            result: _res,
-                            reason: response,
-                        };
-                    } else {
+                    if !i.is_ascii_alphanumeric() || i == '1' || i == 'b' || i == 'i' || i == 'o' {
                         response = "INVALID: INVALID CHARACTERS IN DATA".to_owned();
                         println!("{}", response);
                         return ValidationResponse {
@@ -559,6 +542,22 @@ pub fn valideh(teststr: &str) -> ValidationResponse {
                         };
                     }
                 }
+                /*
+                Data character validity testing ends here. The tests to compute and test the checksums should follow.
+                */
+                let _res;
+                if verify_checksum(hrp, datapart) {
+                    response = "VALID".to_owned();
+                    _res = true;
+                } else {
+                    response = "INVALID: CHECKSUM VALIDATION FAILED".to_owned();
+                    _res = false;
+                }
+
+                return ValidationResponse {
+                    result: _res,
+                    reason: response,
+                };
             }
         } else {
             response = "INVALID: LENGTH OUT OF RANGE".to_owned();
@@ -575,10 +574,6 @@ pub fn valideh(teststr: &str) -> ValidationResponse {
             result: false,
             reason: response,
         };
-    }
-    ValidationResponse {
-        result: false,
-        reason: "YOU SHOULDNT BE HERE".to_owned(),
     }
 }
 
